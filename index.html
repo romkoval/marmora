@@ -3141,7 +3141,7 @@
     .network-copy, .storefront .feature-copy { position: absolute; inset: auto 24px 24px; z-index: 1; padding-right: 46px; }
     .network-copy .round-arrow, .storefront .feature-copy .round-arrow { position: absolute; right: 0; bottom: 0; }
     .network-copy h2, .storefront .feature-copy h2 { font-size: clamp(23px, 2.65vw, 38px); }
-    .network-copy p, .storefront .feature-copy p { margin: 0 0 6px; font-size: 13px; }
+    .network-copy p, .storefront .feature-copy p { margin: 0 0 6px; font-size: 15px; }
     .photo-feature::after { pointer-events: none; }
 
     .offer-carousel { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 12px; align-items: start; }
@@ -3175,8 +3175,9 @@
     .decor-sample { flex: 0 0 auto; display: block; margin: 3px 1px 13px; border-radius: 3px; border-bottom: 8px solid #746c58; box-shadow: inset 0 -2px #ffffff30, 2px 5px 7px #38422544; overflow: hidden; }
     .decor-sample img { width: clamp(68px, 8.5vw, 140px); height: clamp(48px, 6vw, 87px); }
     .motion-paused .decor-track, .decor-row:hover .decor-track { animation-play-state: paused; }
-    .decor-row:focus-within .decor-track { animation: none; }
-    .decor-row:focus-within .decor-window { overflow-x: auto; }
+    .decor-row:has(.decor-sample:focus-visible) .decor-track { animation: none; }
+    .decor-row:has(.decor-sample:focus-visible) .decor-window { overflow-x: auto; }
+    .decor-row:has(.decor-sample:focus-visible) .decor-repeat { display: none; }
     @keyframes sample-pan { to { transform: translateX(-50%); } }
 
     .home-film { display: grid; place-items: center; position: relative; isolation: isolate; overflow: hidden; min-height: clamp(210px, 37vw, 570px); margin: 0; background: #29221f; border-radius: var(--radius); }
@@ -3220,7 +3221,7 @@
     .location-list p { font-size: 12px; color: var(--muted); }
     .map-key { width: 24px; height: 24px; flex: 0 0 auto; }
 
-    .product-layout { grid-template-columns: minmax(0, 1.03fr) minmax(0, .97fr); column-gap: clamp(22px, 3vw, 46px); }
+    .product-layout { grid-template-columns: minmax(0, 1.03fr) minmax(0, .97fr); grid-template-rows: min-content 1fr; column-gap: clamp(22px, 3vw, 46px); }
     .product-layout .gallery, .product-layout .recommendations { max-width: none; }
     .product-layout h1 { font-size: clamp(19px, 1.65vw, 24px); overflow-wrap: anywhere; }
     .product-layout .gallery-slide img { aspect-ratio: 1.27; }
@@ -3279,6 +3280,8 @@
     .product-contact-social { flex-basis: 100%; }
     .product-layout .recommendations { gap: 18px; align-self: start; }
     .product-layout .recommendations h2 { font-size: 19px; }
+    .product-layout .recommendation-card h3, .product-layout .recommendation-card strong { font-size: 13px; }
+    .product-layout .recommendation-card small { font-size: 12px; line-height: 1.4; }
     .product-layout .recommendation-grid { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 30px) / 4); grid-template-columns: none; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 3px 0 6px; }
     .recommendation-grid .recommendation-card { scroll-snap-align: start; }
     .recommendation-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -3314,7 +3317,10 @@
       .desktop-nav nav > a:not(.logo), .nav-dropdown summary { min-height: 44px; }
     }
     .product-layout .thumbs { grid-auto-columns: clamp(56px, 9vw, 95px); justify-content: start; overflow-x: auto; padding-bottom: 10px; }
-    .product-layout .gallery:has(.thumbs) { padding-bottom: 12px; border-bottom: 1px solid var(--green); }
+    .product-layout .gallery { padding-bottom: 14px; border-bottom: 1px solid var(--green); }
+    @media (min-width: 761px) and (max-width: 1100px) {
+      .product-layout .recommendation-grid { grid-auto-columns: calc((100% - 20px) / 3); }
+    }
     @media (max-width: 760px) {
       html { scroll-padding-top: 72px; }
       .site-header .bar { min-height: 60px; display: flex; }
@@ -3336,7 +3342,7 @@
       .home-network { grid-template-columns: 1fr; }
       .network-card { min-height: 255px; }
       .network-copy, .storefront .feature-copy { inset: auto 14px 14px; padding-right: 40px; }
-      .network-copy p, .storefront .feature-copy p { font-size: 12px; }
+      .network-copy p, .storefront .feature-copy p { font-size: 14px; }
       .offer-carousel { grid-template-columns: 30px minmax(0, 1fr) 30px; gap: 5px; }
       .offer-carousel .icon-button { width: 30px; height: 36px; margin-top: clamp(47px, 15vw, 90px); }
       .offer-card { flex-basis: 69%; }
@@ -3355,9 +3361,14 @@
       .bottom-film .feature-copy h2 { font-size: clamp(17px, 5vw, 25px); }
       .bottom-film .feature-copy .btn { min-height: 35px; padding: 5px 8px; margin-top: 5px; }
     }
+    @media (max-width: 480px) {
+      .product-layout .recommendation-grid { grid-auto-columns: calc((100% - 8px) / 2); }
+    }
     @media (prefers-reduced-motion: reduce) {
       .hero-photo-alternate { transition: none; }
       .storefront [data-reveal].revealed, .decor-row .decor-track { animation: none; }
+      .decor-window { overflow-x: auto; }
+      .decor-repeat { display: none; }
     }
   </style>
 </head>
@@ -4078,6 +4089,11 @@ function bindHome() {
     reduced.addEventListener('change', syncMotion);
     syncMotion();
 
+    homeView.addEventListener('focusin', event => {
+        const sample = event.target.closest('.decor-sample');
+        if (sample?.matches(':focus-visible')) sample.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    });
+
     const track = homeView.querySelector('.offer-track');
     const previous = homeView.querySelector('[data-offer-step="-1"]');
     const next = homeView.querySelector('[data-offer-step="1"]');
@@ -4225,7 +4241,7 @@ const priceLinks = [
 function decorRow(material) {
     const samples = [...new Map(products.filter(item => !item.archived && item.material === material && item.swatch && regionalOffer(item)).map(item => [item.swatch, item])).values()];
     const tiles = samples.map(item => `<a class="decor-sample" href="${productHref(item)}" data-local-route aria-label="${item.brand} ${item.article}, ${item.color}">${pic(item.swatch, '', 'loading=lazy')}</a>`).join('');
-    const copies = samples.map(item => `<span class="decor-sample">${pic(item.swatch, '', 'loading=lazy')}</span>`).join('');
+    const copies = samples.map(item => `<a class="decor-sample" href="${productHref(item)}" data-local-route tabindex="-1" aria-hidden="true" aria-label="${item.brand} ${item.article}, ${item.color}">${pic(item.swatch, '', 'loading=lazy')}</a>`).join('');
     const repeats = copies.repeat(2);
     return `<div class="decor-row">
       <a class="decor-material" href="${catalogLink('material', material)}">${materials[material]} <span aria-hidden="true">↗</span></a>
@@ -4295,7 +4311,7 @@ function home() {
 
     <section class="section" id="decors" data-reveal>
       <div class="decor-panel">
-        <div class="decor-copy"><h2>Каталог декоров камня</h2><p>Образцы акрила и кварца</p><a class="btn" href="#catalog">Открыть каталог</a></div>
+        <div class="decor-copy"><h2>Каталог декоров камня</h2><p>Визуализации образцов акрила и кварца</p><a class="btn" href="#catalog">Открыть каталог</a></div>
         <div class="decor-view">${decorRow('acrylic')}${decorRow('quartz')}</div>
       </div>
     </section>
@@ -4442,6 +4458,7 @@ function productMarkup(p) {
             ${p.photos.length > 1 ? `<span class="gallery-count"><span id="photo-index">1</span> / ${p.photos.length}</span>` : ''}
           </div>
           ${p.photos.length > 1 ? `<div class="thumbs" aria-label="Выбрать фотографию">${p.photos.map((photo, index) => `<button type="button" data-photo-index="${index}" aria-label="Ракурс ${index + 1}" aria-pressed="${index === 0}">${pic(photo)}</button>`).join('')}</div>` : ''}
+          ${p.id === 'a101' ? '<p class="gallery-example">Для этого изделия пока доступно одно фото.</p>' : ''}
           ${p.sourceUrl ? `<p class="gallery-example">Фото, название и образец декора: <a href="${p.sourceUrl}" target="_blank" rel="noopener noreferrer">Interstone ↗</a>. Интерьеры демонстрируют материал. Цена в макете условная.</p>` : p.referencePhoto ? `<p class="gallery-example">${p.photoSource} Оттенок показан на образце декора.</p>` : ''}
         </div>
         <div class="product-info">
@@ -4744,7 +4761,7 @@ function product(p) {
     document.body.classList.add("has-product");
     const back = app.querySelector('#back-catalog');
     const previousCatalog = new URL(lastCatalogHash, location.href);
-    const catalogQuery = previousCatalog.protocol === 'file:'
+    const catalogQuery = previousCatalog.hash
         ? previousCatalog.hash.split('?')[1] || '' : previousCatalog.search.slice(1);
     back.href = catalogHref(regionKey, p.requestOnly ? 'category=' + p.category : catalogQuery);
     back.dataset.localRoute = '';
