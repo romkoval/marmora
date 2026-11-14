@@ -2956,7 +2956,7 @@
 }
 .color-picker .chosen-color img { width: 34px; height: 34px; }
 .product-info .calculator { margin-top: 12px; padding-top: 12px; gap: 7px; }
-.project-fields { display: grid; grid-template-columns: minmax(105px, .7fr) minmax(0, 1.3fr); gap: 10px; }
+.project-fields { display: grid; grid-template-columns: minmax(105px, .7fr) minmax(0, 1.3fr); align-items: end; gap: 10px; }
 .project-fields .field { width: 100%; }
 .project-fields .field input,
 .project-fields .field select { min-height: 40px; }
@@ -2971,15 +2971,12 @@
 .product-utilities { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; margin-top: 4px; }
 .product-utilities .text-button { font-size: 12px; }
 .product-utilities .text-button[aria-pressed=true] { color: var(--green); font-weight: 700; }
-.product-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 14px; margin-top: 4px; border-top: 1px solid var(--line); }
-.product-contact strong { font-size: 13px; }
-.product-contact .text-button { font-size: 12px; }
 .product-layout .recommendations { max-width: 510px; width: 100%; gap: 16px; }
 .product-layout .recommendations h2 { font-size: 17px; margin-bottom: 8px; }
 .product-layout .recommendation-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .product-layout .recommendation-card { display: block; min-width: 0; }
 .product-layout .recommendation-card img { width: 100%; height: auto; aspect-ratio: 1; margin-bottom: 6px; }
-.product-layout .recommendation-card h3 { font-size: 12px; margin-bottom: 2px; }
+.product-layout .recommendation-card h3 { font-size: 12px; margin-bottom: 2px; overflow-wrap: anywhere; }
 .product-layout .recommendation-card small { display: block; line-height: 1.25; }
 .product-layout .recommendation-card strong { font-size: 12px; }
 .catalog-layout { display: grid; grid-template-columns: 225px minmax(0, 1fr); align-items: start; gap: 30px; margin-top: 22px; }
@@ -3212,7 +3209,7 @@
     .brand-options img { aspect-ratio: 1; border-radius: 2px; }
     .brand-options small { display: block; font-size: 10px; color: var(--muted); }
     .brand-options [aria-current=true] { border-color: var(--green); }
-    .product-info .calculator, .product-contact { border-top: 0; }
+    .product-info .calculator { border-top: 0; }
     .product-info .option { border: 0; }
     .product-info .warning { background: #f4e9ed; color: #542c39; }
     .product-info .delivery-zone { max-width: 285px; }
@@ -3222,8 +3219,31 @@
     .product-utilities [aria-pressed=true] { border-color: #c5aab4; background: #f4e9ed; }
     .quote-symbol { font-size: 22px; line-height: 1; }
     .share-symbol { font-size: 17px; transform: rotate(-23deg); }
-    .product-contact { background: var(--soft); border-radius: var(--radius); padding: 8px 11px; }
-    .product-contact > small { font-size: 11px; }
+    .product-contact {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      column-gap: 20px;
+      margin-top: 4px;
+      padding: 8px 12px;
+      background: var(--soft);
+      border-radius: var(--radius);
+    }
+    .product-contact-main, .product-contact-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      column-gap: 12px;
+    }
+    .product-contact-main { font-size: 13px; }
+    .product-contact a, .product-contact .text-button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding-block: 0;
+      white-space: nowrap;
+    }
+    .product-contact-actions .text-button { font-size: 12px; }
     .product-layout .recommendations h2 { font-size: 19px; }
     .product-layout .recommendation-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     .related-empty { font-size: 13px; }
@@ -3249,6 +3269,12 @@
     @media (min-width: 761px) and (max-width: 850px) {
       .site-header .demo-label { display: none; }
       .header-contacts { margin-inline-end: auto; }
+      .desktop-nav > nav { display: grid; grid-template-columns: auto repeat(4, max-content); justify-content: space-between; gap: 0 10px; }
+      .site-header .desktop-logo { grid-row: 1 / 3; margin-right: 0; }
+      .desktop-nav nav > a:not(.logo), .nav-dropdown summary { min-height: 44px; }
+    }
+    @media (min-width: 761px) and (max-width: 1000px) {
+      .product-layout .recommendation-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (min-width: 761px) {
       .product-layout .gallery:has(.thumbs) { display: grid; grid-template-columns: 59px minmax(0, 1fr); gap: 8px; }
@@ -3295,6 +3321,7 @@
       .location-map { min-height: 230px; }
       .footer-group { min-width: 0; }
       .product-layout .recommendation-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .product-layout .thumbs { grid-auto-columns: 64px; justify-content: start; }
       .product-guides { grid-template-columns: 1fr; }
       .product-info .price { font-size: 26px; }
       .brand-options a { grid-template-columns: 26px minmax(0, 1fr); }
@@ -3786,14 +3813,17 @@ function recommendationGroup(heading, items, empty) {
 }
 
 function productContact() {
-    return `<div class="product-contact">
-      <strong>Связаться с нами</strong>
-      <a class="phone-link" href="tel:88004000000">8-800-400-00-00</a>
-      <button class="text-button" type="button" data-request="callback">Обратный звонок</button>
-      <a class="text-button" href="https://wa.me/79037245256">WhatsApp</a>
-      ${document.querySelector('.social-links').outerHTML}
-      <small>Telegram и ВКонтакте уточняются</small>
-    </div>`;
+    return `<section class="product-contact" aria-label="Связаться с нами">
+      <div class="product-contact-main">
+        <strong>Связаться с нами</strong>
+        <a class="phone-link" href="tel:88004000000">8-800-400-00-00</a>
+      </div>
+      <div class="product-contact-actions">
+        <button class="text-button" type="button" data-request="callback">Обратный звонок</button>
+        <a class="text-button" href="https://wa.me/79037245256">WhatsApp</a>
+        <a class="text-button" href="https://www.instagram.com/levoni_stone/">Instagram</a>
+      </div>
+    </section>`;
 }
 function shellDialog(name, body) {
     const d = document.querySelector('#utility-dialog');
@@ -4358,8 +4388,8 @@ function productMarkup(p) {
             </div>
             ${p.photos.length > 1 ? `<span class="gallery-count"><span id="photo-index">1</span> / ${p.photos.length}</span>` : ''}
           </div>
-          ${p.sourceUrl ? `<p class="gallery-example">Фото, название и образец декора: <a href="${p.sourceUrl}" target="_blank" rel="noopener noreferrer">Interstone ↗</a>. Интерьеры демонстрируют материал. Цена в макете условная.</p>` : p.referencePhoto ? `<p class="gallery-example">${p.photoSource} Оттенок показан на образце декора.</p>` : ''}
           ${p.photos.length > 1 ? `<div class="thumbs" aria-label="Выбрать фотографию">${p.photos.map((photo, index) => `<button type="button" data-photo-index="${index}" aria-label="Ракурс ${index + 1}" aria-pressed="${index === 0}">${pic(photo)}</button>`).join('')}</div>` : ''}
+          ${p.sourceUrl ? `<p class="gallery-example">Фото, название и образец декора: <a href="${p.sourceUrl}" target="_blank" rel="noopener noreferrer">Interstone ↗</a>. Интерьеры демонстрируют материал. Цена в макете условная.</p>` : p.referencePhoto ? `<p class="gallery-example">${p.photoSource} Оттенок показан на образце декора.</p>` : ''}
         </div>
         <div class="product-info">
           <div class="brand-picker" ${p.fixed && !p.table ? "hidden" : ""}><span class="active-brand">${p.brand}</span><button type="button" class="text-button" data-brand-picker aria-haspopup="dialog">Выбрать другой бренд</button></div>
