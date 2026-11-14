@@ -3014,9 +3014,40 @@
 .catalog-sidebar .field select { min-height: 40px; font-size: 14px; }
 .catalog-sidebar .btn { width: 100%; margin-top: 12px; min-height: 38px; }
 .catalog-layout #show-filters { display: none; }
-.regional-info { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding-top: 30px; }
-.regional-info h2 { font-size: 21px; }
-.regional-info p { margin: 8px 0; }
+.regional-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px clamp(24px, 4vw, 58px);
+  padding-top: 30px;
+}
+.regional-info h2, .details h2 { font-size: 21px; margin: 0 0 12px; }
+.product-support-list { border-top: 1px solid var(--line); }
+.product-support-item { border-bottom: 1px solid var(--line); }
+details.product-support-item { padding: 0; }
+.product-support-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+  padding: 9px 4px 9px 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  -webkit-tap-highlight-color: #71263820;
+}
+summary.product-support-row { list-style: none; cursor: pointer; }
+summary.product-support-row::-webkit-details-marker { display: none; }
+.product-support-row:hover { color: var(--green); text-decoration: none; }
+.product-support-row:focus-visible { outline-offset: 0; }
+.product-support-row svg { flex: none; width: 16px; height: 16px; color: var(--green); }
+.product-support-item[open] > summary { color: var(--green); }
+.product-support-item[open] > summary svg { transform: rotate(180deg); }
+.product-support-answer { padding: 0 24px 14px 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.product-support-answer p { padding-top: 0; }
+.product-support-answer p + p { margin-top: 8px; }
+.product-support-answer .product-facts { width: fit-content; margin: 9px 0; }
+.product-support-answer .text-button { display: inline-flex; align-items: center; }
 .saved-list { display: grid; gap: 12px; }
 .saved-list article { padding: 10px 0; border-bottom: 1px solid var(--line); }
 .saved-list h3 { font-size: 15px; }
@@ -3264,7 +3295,7 @@
       flex-wrap: wrap;
       gap: 2px;
     }
-    .product-contact .phone-link, .product-contact-icon {
+    .product-contact .phone-link, .product-contact-icon, .contact-channel-details .phone-link {
       display: inline-flex;
       align-items: center;
       min-height: 44px;
@@ -3304,7 +3335,6 @@
       .product-accessories .related-card-preview img { aspect-ratio: 1.65; height: auto; }
       .product-accessories .related-card .btn { grid-column: 1; }
     }
-    .regional-info details, .details details { border-bottom: 0; padding: 7px 0; }
     .review-placeholder h2 { font-size: 23px; }
     .review-placeholder p { color: var(--muted); margin-top: 7px; }
     .bottom-film { aspect-ratio: 16 / 9; min-height: 0; }
@@ -3880,6 +3910,17 @@ function shareQuote() {
     };
 }
 
+function productSupportIcon(path) {
+    return `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
+}
+
+function productSupportDisclosure(label, content) {
+    return `<details class="product-support-item">
+      <summary class="product-support-row">${label}${productSupportIcon('m4 6 4 4 4-4')}</summary>
+      <div class="product-support-answer">${content}</div>
+    </details>`;
+}
+
 function renderRegionalInfo(product) {
     const data = product.settings;
     const options = product.fixed ? [] : [
@@ -3887,22 +3928,28 @@ function renderRegionalInfo(product) {
         ...(product.category === 'countertop' ? [['sinks', 'Мойки и способы монтажа']] : []),
         ['works', 'Дополнительные работы']
     ];
-    return `<section class="section regional-info">
-      <div><h2>Дополнительные возможности</h2>
-        ${options.map(([id, label]) => `<details><summary>${label}</summary><p><a class="text-button" href="#story/${id}">Подробнее</a></p></details>`).join('')}
-        <details><summary>Доставка и монтаж</summary>
+    const arrow = productSupportIcon('M2.5 8h10M8.5 4l4 4-4 4');
+    const delivery = `
         <p>${data.deliveryLabel}. Тарифы в расчёте демонстрационные.</p>
         <dl class="product-facts">${Object.entries(deliveryZones).map(([zone, label]) => `<dt>${label}</dt><dd>${money(product.delivery[zone])}</dd>`).join('')}</dl>
         <p>Адрес, условия монтажа и дату выезда согласует менеджер.</p>
-        <a class="text-button" href="#contacts">Где купить</a>
-        </details>
-      </div>
-      <div><h2>Вопросы и ответы</h2>
-        <details><summary>Когда возможен замер?</summary><p>Менеджер согласует время и адрес выезда.</p></details>
-        <details><summary>Сколько занимает изготовление?</summary><p>${product.fixed ? "Срок готовности выбранной модели и цвета подтверждает менеджер при согласовании заказа." : "Изготовление по размерам проекта. Срок зависит от материала, раскроя и загрузки производства."}</p></details>
-        <details><summary>Что входит в расчёт?</summary><p>${product.fixed ? 'Стоимость одной модели и выбранная доставка.' : 'Камень и предусмотренные работы по изготовлению. Доставка и установка добавляются при выборе.'}</p></details>
-        <details><summary>Как оплатить заказ?</summary><p>Менеджер проверит корзину, подтвердит состав заказа и согласует оплату.</p></details>
-      </div>
+        <a class="text-button" href="#contacts">Где купить</a>`;
+    const questions = [
+        ['Когда возможен замер?', 'Менеджер согласует время и адрес выезда.'],
+        ['Сколько занимает изготовление?', product.fixed ? 'Срок готовности выбранной модели и цвета подтверждает менеджер при согласовании заказа.' : 'Изготовление по размерам проекта. Срок зависит от материала, раскроя и загрузки производства.'],
+        ['Что входит в расчёт?', product.fixed ? 'Стоимость одной модели и выбранная доставка.' : 'Камень и предусмотренные работы по изготовлению. Доставка и установка добавляются при выборе.'],
+        ['Как оплатить заказ?', 'Менеджер проверит корзину, подтвердит состав заказа и согласует оплату.']
+    ];
+    return `<section class="section regional-info">
+      <section aria-labelledby="product-options-title"><h2 id="product-options-title">Дополнительные возможности</h2>
+        <div class="product-support-list">
+          ${options.map(([id, label]) => `<a class="product-support-row product-support-item" href="#story/${id}">${label}${arrow}</a>`).join('')}
+          ${productSupportDisclosure('Доставка и монтаж', delivery)}
+        </div>
+      </section>
+      <section aria-labelledby="product-faq-title"><h2 id="product-faq-title">Вопросы и ответы</h2>
+        <div class="product-support-list">${questions.map(([label, answer]) => productSupportDisclosure(label, `<p>${answer}</p>`)).join('')}</div>
+      </section>
     </section>`;
 }
 
@@ -4251,7 +4298,7 @@ document.addEventListener('click', event => {
         const channel = control.dataset.contactInfo;
         const title = channel === 'email' ? 'Электронная почта' : channel;
         const phone = control.hasAttribute('data-messenger-contact') ? messengerPhone : { number: '88004000000', label: '8-800-400-00-00' };
-        shellDialog(title, `<div class="sheet-body"><p>Прямая ссылка пока не добавлена.</p><a class="phone-link" href="tel:${phone.number}">${phone.label}</a></div>`);
+        shellDialog(title, `<div class="sheet-body contact-channel-details"><p>Прямая ссылка пока не добавлена.</p><a class="phone-link" href="tel:${phone.number}">${phone.label}</a></div>`);
     }
     if (control.matches('[data-accessory-details]')) {
         const item = accessories.find(candidate => candidate.id === control.dataset.accessoryDetails);
@@ -4603,26 +4650,26 @@ function productMarkup(p) {
  <section class="section details" aria-label="Об изделии">
 <div>
 <h2>Сведения об изделии</h2>
-<details>
-<summary>Характеристики и описание</summary>
+<div class="product-support-list">
+${productSupportDisclosure('Характеристики и описание', `
 <p>${fullTitle(p)}. ${p.fixed ? p.dimensions : `${materials[p.material]}, серия «${p.series}». Размеры, поверхность и технические детали согласуются по проекту.`}</p><p>Гарантия: условия уточняются по спецификации изделия.</p>
-</details>
-<details>
-<summary>Сертификаты и инструкции</summary>
+`)}
+${productSupportDisclosure('Сертификаты и инструкции', `
 <p>Подтверждённые документы для этой позиции ещё не добавлены. Их можно запросить вместе со спецификацией.</p>
-<button class="text-button" data-request="spec">Запросить спецификацию</button>
-</details>
+<button class="text-button" type="button" data-request="spec">Запросить спецификацию</button>
+`)}
+</div>
 </div>
 <div>
 <h2>Заказ и расчёт</h2>
-<details>
-<summary>Что входит в стоимость</summary>
+<div class="product-support-list">
+${productSupportDisclosure('Что входит в стоимость', `
 <p>${p.fixed ? 'Цена за одну модель и выбранная доставка. Установку можно согласовать с менеджером.' : 'Площадь × ставка материала, включая предусмотренные работы. Доставка добавляется при выборе. Монтаж — большее из 10% стоимости изделия или демонстрационного минимума исполнителя.'} Тарифы условные.</p>
-</details>
-<details>
-<summary>Как согласовать заказ</summary>
+`)}
+${productSupportDisclosure('Как согласовать заказ', `
 <p>${p.fixed ? "Добавьте выбранную модель и цвет в корзину. Менеджер подтвердит комплектацию, совместимость аксессуаров, доставку и срок готовности." : "Добавьте изделие в корзину. Менеджер уточняет размеры, раскрой и сроки перед окончательным подтверждением."}${stone ? ' Остаток плиты рассчитывается отдельно по себестоимости.' : ' Для акрила доплаты за остаток материала нет.'}</p>
-</details>
+`)}
+</div>
 </div>
 </section>
  <section class="section">
