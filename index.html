@@ -3322,7 +3322,41 @@
       .product-layout .recommendation-grid { grid-auto-columns: calc((100% - 20px) / 3); }
     }
     @media (max-width: 760px) {
-      html { scroll-padding-top: 72px; }
+      html { scroll-padding-top: 72px; scroll-padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+      .mobile-tools .icon-button, .header-tools > .cart-link { width: 44px; min-width: 44px; height: 44px; }
+      .mobile-region { align-items: center; padding-block: 0; font-size: 12px; }
+      .mobile-region button, .mobile-region .phone-link { min-height: 44px; font-size: 12px; }
+      .mobile-region button { display: flex; align-items: center; }
+      .motion-toggle { width: 44px; height: 44px; }
+      .network-offices { display: flex; flex-direction: column; }
+      .network-offices .network-pattern { position: static; min-height: 150px; margin: 16px 16px 0; padding: 10px 0; gap: 4px; }
+      .network-offices .network-copy { position: relative; inset: auto; margin: 16px 14px 14px; }
+      .network-dots { gap: 4px; padding: 0 8px; }
+      .network-dots button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; }
+      .network-dots button[aria-pressed=true] { background: transparent; }
+      .network-dots button::before { content: ''; box-sizing: border-box; width: 16px; height: 16px; border: 2px solid #7b263c; border-radius: 50%; }
+      .network-dots button[aria-pressed=true]::before { background: #7b263c; }
+      .recommendation-controls button { width: 44px; height: 44px; }
+      .recommendation-heading { align-items: start; }
+      .product-info .color-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+      .product-info .color-picker > span { grid-column: 1 / -1; }
+      .product-info .chosen-color { justify-self: start; }
+      .product-facts { font-size: 13px; }
+      .project-fields { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 12px; }
+      .product-info .project-fields input, .product-info .project-fields select, .product-info .delivery-zone select,
+      .product-info .option, .product-info .secondary-actions .btn, .product-utilities .btn { min-height: 48px; }
+      .product-info .delivery-zone { max-width: none; }
+      .location-map { max-width: none; }
+      .map-marker { width: 44px; height: 44px; }
+      .location-filters label { min-height: 44px; align-items: center; gap: 7px; font-size: 13px; }
+      .location-filters input { flex: 0 0 auto; width: 18px; height: 18px; margin: 0; }
+      .social-icon { width: 44px; height: 44px; }
+      .footer-contacts > .text-button { min-height: 44px; }
+      body.has-product { padding-bottom: calc(75px + env(safe-area-inset-bottom)); }
+      dialog { scroll-padding-block: 90px 24px; }
+      .cart-item { grid-template-columns: 72px minmax(0, 1fr); gap: 12px; }
+      .cart-item img { width: 72px; height: 72px; }
+      .cart-item .text-button { display: block; width: fit-content; min-height: 44px; }
       .site-header .bar { min-height: 60px; display: flex; }
       .header-contacts { display: flex; margin-right: auto; }
       .header-contact-links { display: none; }
@@ -3334,7 +3368,7 @@
       .motion-toggle { right: 10px; bottom: 12px; }
       .shopping-panel { min-height: 62px; padding: 8px 12px 8px 15px; }
       .shopping-panel span { font-size: 20px; }
-      .round-arrow, .motion-toggle { width: 37px; height: 37px; }
+      .round-arrow { width: 37px; height: 37px; }
       .storefront .section-head { align-items: baseline; gap: 6px 10px; flex-wrap: wrap; }
       .storefront .section-head > a { font-size: 13px; }
       .storefront .categories, .storefront .materials { gap: 10px; }
@@ -3343,9 +3377,12 @@
       .network-card { min-height: 255px; }
       .network-copy, .storefront .feature-copy { inset: auto 14px 14px; padding-right: 40px; }
       .network-copy p, .storefront .feature-copy p { font-size: 14px; }
-      .offer-carousel { grid-template-columns: 30px minmax(0, 1fr) 30px; gap: 5px; }
-      .offer-carousel .icon-button { width: 30px; height: 36px; margin-top: clamp(47px, 15vw, 90px); }
-      .offer-card { flex-basis: 69%; }
+      .offer-carousel { grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 8px; }
+      .offer-track { grid-column: 1 / -1; grid-row: 1; }
+      .offer-carousel .icon-button { width: 44px; height: 44px; margin: 0; grid-row: 2; }
+      .offer-carousel [data-offer-step="-1"] { grid-column: 2; }
+      .offer-carousel [data-offer-step="1"] { grid-column: 3; }
+      .offer-card { flex-basis: 62%; }
       .offer-track { gap: 8px; }
       .home-price-links { grid-template-columns: 1fr; }
       .home-price-card { min-height: 235px; }
@@ -3361,9 +3398,25 @@
       .bottom-film .feature-copy h2 { font-size: clamp(17px, 5vw, 25px); }
       .bottom-film .feature-copy .btn { min-height: 35px; padding: 5px 8px; margin-top: 5px; }
     }
+    @media (min-width: 600px) and (max-width: 760px) {
+      .storefront .categories, .storefront .materials { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .home-network, .home-price-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .network-card { min-height: 315px; }
+      .decor-panel { grid-template-columns: minmax(0, .9fr) minmax(0, 1.65fr); }
+      .certificate, .measurement, .location-layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; }
+      .location-filters { grid-template-columns: minmax(0, 1fr); gap: 0; }
+      .journal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+      .offer-card { flex-basis: 42%; }
+      .product-layout .gallery-slide img { aspect-ratio: 1.65; }
+    }
     @media (max-width: 480px) {
       .product-layout .recommendation-grid { grid-auto-columns: calc((100% - 8px) / 2); }
+      .project-fields { grid-template-columns: minmax(0, 1fr); }
     }
+    @media (max-width: 380px) {
+      .location-filters { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    }
+    .offer-card:focus-visible, .recommendation-card:focus-visible, .decor-sample:focus-visible { outline-offset: -3px; }
     @media (prefers-reduced-motion: reduce) {
       .hero-photo-alternate { transition: none; }
       .storefront [data-reveal].revealed, .decor-row .decor-track { animation: none; }
@@ -3849,7 +3902,7 @@ function recommendationGroup(heading, items, empty) {
     return `<section><div class="recommendation-heading"><h2>${heading}</h2>${items.length > 3 ? `<div class="recommendation-controls">
       <button class="icon-button" type="button" data-related-step="-1" aria-label="Предыдущие декоры" disabled>‹</button>
       <button class="icon-button" type="button" data-related-step="1" aria-label="Следующие декоры">›</button></div>` : ''}</div>${items.length
-      ? `<div class="recommendation-grid">${items.map(recommendation).join('')}</div>`
+      ? `<div class="recommendation-grid" role="group" aria-label="${heading}" tabindex="0">${items.map(recommendation).join('')}</div>`
       : `<p class="soft related-empty">${empty}</p>`}</section>`;
 }
 
@@ -4110,7 +4163,7 @@ function bindHome() {
     next.onclick = () => moveOffers(1);
     track.addEventListener('scroll', syncArrows, { passive: true });
     track.addEventListener('keydown', event => {
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        if (event.target !== track || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
         event.preventDefault();
         moveOffers(event.key === 'ArrowLeft' ? -1 : 1);
     });
@@ -4789,10 +4842,16 @@ function product(p) {
             prev.disabled = track.scrollLeft < 2;
             next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
         };
-        for (const button of [prev, next]) button.onclick = () => {
+        const move = direction => {
             const step = track.firstElementChild.offsetWidth + parseFloat(getComputedStyle(track).columnGap);
-            track.scrollBy({ left: step * Number(button.dataset.relatedStep), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+            track.scrollBy({ left: step * direction, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
         };
+        for (const button of [prev, next]) button.onclick = () => move(Number(button.dataset.relatedStep));
+        track.addEventListener('keydown', event => {
+            if (event.target !== track || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+            event.preventDefault();
+            move(event.key === 'ArrowLeft' ? -1 : 1);
+        });
         track.addEventListener('scroll', sync, { passive: true });
         const observer = new ResizeObserver(sync);
         observer.observe(track);
