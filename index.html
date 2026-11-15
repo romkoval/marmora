@@ -2994,7 +2994,7 @@
 .quote-bar .btn { justify-content: space-between; }
 .cart-button-price { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .product-info .secondary-actions { gap: 7px; }
-.product-info .secondary-actions .btn { min-height: 39px; padding: 5px 8px; font-size: 12px; }
+.product-info .secondary-actions .btn { min-height: 44px; padding: 5px 8px; font-size: 12px; }
 .product-utilities { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; margin-top: 4px; }
 .product-utilities .text-button { font-size: 12px; }
 .product-utilities .text-button[aria-pressed=true] { color: var(--green); font-weight: 700; }
@@ -3282,20 +3282,23 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .product-info .delivery-zone { max-width: 285px; }
     .product-utilities { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 9px 0; }
     .product-utilities .btn { min-height: 44px; padding: 5px 7px; font-size: 12px; }
-    .product-utilities [aria-pressed=true] { border-color: #c5aab4; background: #f4e9ed; }
+    .product-info :is(.secondary-actions, .product-utilities) .btn.secondary { color: #222; border-color: var(--green); }
+    .product-utilities [aria-pressed=true] { background: #f4e9ed; }
     .quote-symbol { font-size: 22px; line-height: 1; }
     .share-symbol { font-size: 17px; transform: rotate(-23deg); }
     .product-contact {
-      display: grid;
-      gap: 2px;
-      justify-items: start;
-      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 2px 20px;
+      margin-top: 12px;
     }
     .product-contact-row {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
       gap: 2px;
+      max-width: 100%;
     }
     .product-contact .phone-link, .product-contact-icon, .contact-channel-details .phone-link {
       display: inline-flex;
@@ -3303,7 +3306,7 @@ summary.product-support-row::-webkit-details-marker { display: none; }
       min-height: 44px;
       color: var(--green);
     }
-    .product-contact .phone-link { gap: 10px; font-size: 14px; }
+    .product-contact .phone-link { gap: 8px; font-size: 14px; }
     .product-contact-icon {
       width: 44px;
       justify-content: center;
@@ -3314,8 +3317,7 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     }
     .product-contact-icon:hover { background: var(--soft); text-decoration: none; }
     .product-contact svg { width: 22px; height: 22px; flex: none; }
-    .product-contact > .phone-link svg { margin-inline-start: 11px; }
-    .product-contact-messengers .phone-link { padding-inline-start: 6px; }
+    .product-contact .phone-link svg { width: 18px; height: 18px; }
     .product-layout .recommendations { gap: 18px; align-self: start; }
     .product-layout .recommendations h2 { font-size: 19px; }
     .product-layout .recommendation-card h3, .product-layout .recommendation-card strong { font-size: 13px; }
@@ -3987,19 +3989,15 @@ function productContactChannel(icon, label, { href, messenger = false } = {}) {
 
 function productContact() {
     return `<section class="product-contact" aria-label="Контакты">
-      <a class="phone-link" href="tel:88004000000">${contactIcon('phone')}8-800-400-00-00</a>
-      <div class="product-contact-row product-contact-messengers" role="group" aria-label="Мессенджеры">
+      <div class="product-contact-row" role="group" aria-label="Мессенджеры и соцсети">
         ${productContactChannel('telegram', 'Telegram', { messenger: true })}
-        ${productContactChannel('vk', 'ВКонтакте — сообщения', { messenger: true })}
+        ${productContactChannel('vk', 'ВКонтакте', { messenger: true })}
         ${productContactChannel('max', 'MAX', { messenger: true })}
-        <a class="phone-link" href="tel:${messengerPhone.number}" aria-label="Номер для мессенджеров ${messengerPhone.label}">${messengerPhone.label}</a>
-      </div>
-      <div class="product-contact-row" role="group" aria-label="Социальные сети">
         ${productContactChannel('instagram', 'Instagram', { href: 'https://www.instagram.com/levoni_stone/' })}
         ${productContactChannel('pinterest', 'Pinterest')}
-        ${productContactChannel('vk', 'ВКонтакте — сообщество')}
         ${productContactChannel('youtube', 'YouTube', { href: 'https://www.youtube.com/@levonico.8936' })}
       </div>
+      <a class="phone-link" href="tel:${messengerPhone.number}">${contactIcon('phone')}${messengerPhone.label}</a>
     </section>`;
 }
 function shellDialog(name, body) {
