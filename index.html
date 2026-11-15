@@ -3333,11 +3333,49 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .related-card { background: var(--soft); border-radius: var(--radius); padding: 10px; }
     .related-card strong { display: block; margin-top: 4px; }
     .related-card .btn { grid-column: 2; justify-self: start; min-height: 44px; padding: 4px 10px; }
-    @media (min-width: 761px) {
-      .product-accessories .related-card { grid-template-columns: minmax(0, 1fr); padding: 12px; }
-      .product-accessories .related-card-preview { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-      .product-accessories .related-card-preview img { aspect-ratio: 1.65; height: auto; }
-      .product-accessories .related-card .btn { grid-column: 1; }
+    .product-accessories .section-head { margin-bottom: 18px; }
+    .accessory-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; }
+    .product-accessory {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      align-items: start;
+      gap: 12px;
+      padding: 16px 0;
+      border-top: 1px solid var(--line);
+    }
+    .product-accessory[hidden] { display: none; }
+    .accessory-photo { padding: 0; border: 0; border-radius: 6px; background: var(--soft); overflow: hidden; }
+    .accessory-photo img { width: 100%; aspect-ratio: 1; display: block; }
+    .accessory-summary { min-width: 0; }
+    .accessory-title {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      padding: 0;
+      border: 0;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+      text-align: left;
+    }
+    .accessory-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .accessory-purchase { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; margin-top: 8px; }
+    .accessory-purchase strong { font-size: 14px; white-space: nowrap; }
+    .accessory-purchase .btn { min-height: 44px; padding: 5px 10px; font-size: 12px; }
+    .accessory-list-toggle { display: flex; gap: 12px; align-items: center; min-height: 44px; margin-top: 8px; padding: 8px 0; border: 0; border-radius: 3px; background: transparent; color: var(--green); font-size: 14px; font-weight: 700; text-align: left; }
+    .accessory-list-toggle svg { width: 16px; height: 16px; flex: none; }
+    .accessory-list-toggle[aria-expanded=true] svg { transform: rotate(180deg); }
+    @media (max-width: 959px) {
+      .accessory-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .product-accessory { grid-template-columns: 72px minmax(0, 1fr); }
+    }
+    @media (max-width: 599px) {
+      .accessory-list { grid-template-columns: minmax(0, 1fr); }
+      .product-accessory { grid-template-columns: 88px minmax(0, 1fr); padding: 12px 0; }
+      .product-accessories .section-head { margin-bottom: 12px; }
     }
     .review-placeholder h2 { font-size: 23px; }
     .review-placeholder p { color: var(--muted); margin-top: 7px; }
@@ -4002,12 +4040,15 @@ function productContact() {
 }
 function shellDialog(name, body) {
     const d = document.querySelector('#utility-dialog');
+    const alreadyOpen = d.open;
+    document.querySelectorAll('dialog[open]').forEach(x => { if (x !== d) x.close(); });
     d.innerHTML = `<div class="dialog-head">
 <h2 id="utility-title">${name}</h2>
 <button class="close" data-dismiss aria-label="Закрыть">×</button>
 </div>${body}`;
-    document.querySelectorAll('dialog[open]').forEach(x => x.close());
-    d.showModal();
+    // Keep the original opener when details turn into a cart or another sheet.
+    if (alreadyOpen) d.querySelector('.close').focus();
+    else d.showModal();
     return d;
 }
 function updateCounters() { document.querySelectorAll('[data-region-name]').forEach(x => x.textContent = region); document.querySelectorAll('[data-cart-count]').forEach(x => x.textContent = cart.length); document.querySelectorAll('[data-favorite-count]').forEach(x => x.textContent = favorites.length); document.querySelectorAll('[data-account-label]').forEach(x => x.textContent = signedIn ? 'Мой кабинет' : 'Войти'); }
@@ -4300,9 +4341,20 @@ document.addEventListener('click', event => {
         const phone = control.hasAttribute('data-messenger-contact') ? messengerPhone : { number: '88004000000', label: '8-800-400-00-00' };
         shellDialog(title, `<div class="sheet-body contact-channel-details"><p>Прямая ссылка пока не добавлена.</p><a class="phone-link" href="tel:${phone.number}">${phone.label}</a></div>`);
     }
-    if (control.matches('[data-accessory-details]')) {
-        const item = accessories.find(candidate => candidate.id === control.dataset.accessoryDetails);
+    if (control.matches('[data-accessory-details], [data-accessory-photo]')) {
+        const item = accessories.find(candidate => candidate.id === (control.dataset.accessoryDetails || control.dataset.accessoryPhoto));
         if (item) openAccessory(item);
+    }
+    if (control.matches('[data-accessory-toggle]')) {
+        const list = document.getElementById(control.getAttribute('aria-controls'));
+        const extras = [...list.querySelectorAll('[data-accessory-extra]')];
+        const expanded = control.getAttribute('aria-expanded') !== 'true';
+        extras.forEach(item => { item.hidden = !expanded; });
+        control.setAttribute('aria-expanded', String(expanded));
+        control.querySelector('span').textContent = expanded ? 'Свернуть список' : `Показать все ${list.children.length}`;
+        const focusTarget = expanded ? extras[0].querySelector('[data-accessory-details]') : control;
+        focusTarget.focus({ preventScroll: true });
+        focusTarget.scrollIntoView({ block: 'nearest' });
     }
     if (control.matches('[data-add-accessory]')) {
         const item = accessories.find(candidate => candidate.id === control.dataset.addAccessory);
@@ -4533,11 +4585,25 @@ function recommendation(p) {
       <strong data-related-price="${p.id}"></strong></div></a>`;
 }
 
+function productAccessoryCard(item, index) {
+    return `<article class="product-accessory"${index > 2 ? ' data-accessory-extra hidden' : ''}>
+      <button class="accessory-photo" type="button" data-accessory-photo="${item.id}" tabindex="-1" aria-haspopup="dialog" aria-label="${item.name} — подробнее">${pic(item.image, '', 'loading=lazy')}</button>
+      <div class="accessory-summary">
+        <button class="accessory-title" type="button" data-accessory-details="${item.id}" aria-haspopup="dialog">${item.name}</button>
+        <div class="accessory-purchase"><strong>${money(item.price)}</strong>
+          <button class="btn secondary" type="button" data-add-accessory="${item.id}" aria-label="Добавить ${item.name.toLocaleLowerCase('ru-RU')} в корзину">В корзину</button>
+        </div>
+      </div>
+    </article>`;
+}
+
 function relatedProducts(product) {
     const items = accessories.filter(item => product?.table ? item.tableSupport : !item.tableSupport && (item.id !== 'under-sink' || !product || product.category === 'countertop'));
-    return `<section class="section product-accessories">
-      <div class="section-head"><div><h2>${product?.table ? "Выберите подстолье" : "Дополнить изделие"}</h2><p>${product?.table ? "По умолчанию крышка без подстолья. Совместимые варианты добавляются в корзину отдельно; выберите один. Комплектацию проверит менеджер." : "Примеры комплектации."} Цены демонстрационные.</p></div></div>
-      <div class="related-grid">${items.map(accessoryCard).join('')}</div>
+    if (!items.length) return '';
+    return `<section class="section product-accessories" aria-labelledby="accessory-heading">
+      <div class="section-head"><div><h2 id="accessory-heading">${product?.table ? "Выберите подстолье" : "Дополнить изделие"}</h2><p>${product?.table ? "По умолчанию крышка без подстолья. Совместимые варианты добавляются в корзину отдельно; выберите один. Комплектацию проверит менеджер." : "Примеры комплектации."} Цены демонстрационные.</p></div></div>
+      <div class="accessory-list" id="product-accessory-list">${items.map(productAccessoryCard).join('')}</div>
+      ${items.length > 3 ? `<button class="accessory-list-toggle" type="button" data-accessory-toggle aria-expanded="false" aria-controls="product-accessory-list"><span>Показать все ${items.length}</span>${productSupportIcon('m4 6 4 4 4-4')}</button>` : ''}
     </section>`;
 }
 
