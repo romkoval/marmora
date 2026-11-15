@@ -2297,6 +2297,10 @@
       min-height: 32px
     }
 
+    @media (min-width: 761px) {
+      .cart-item strong + .text-button { margin-inline-start: 12px; }
+    }
+
     .cart-bottom {
       margin-top: 20px;
       display: grid;
@@ -3348,7 +3352,8 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .accessory-photo img { width: 100%; aspect-ratio: 1; display: block; }
     .accessory-summary { min-width: 0; }
     .accessory-title {
-      display: block;
+      display: flex;
+      align-items: flex-start;
       width: 100%;
       min-height: 44px;
       padding: 0;
@@ -3364,7 +3369,6 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .accessory-title:hover { text-decoration: underline; text-underline-offset: 3px; }
     .accessory-demo {
       display: inline-block;
-      margin-inline-start: 6px;
       padding: 1px 5px;
       border-radius: 4px;
       background: #f4e9ed;
@@ -4606,7 +4610,7 @@ function productAccessoryCard(item, index) {
     return `<article class="product-accessory"${index > 2 ? ' data-accessory-extra hidden' : ''}>
       <button class="accessory-photo" type="button" data-accessory-photo="${item.id}" tabindex="-1" aria-haspopup="dialog" aria-label="${item.name} — подробнее">${pic(item.image, '', 'loading=lazy')}</button>
       <div class="accessory-summary">
-        <button class="accessory-title" type="button" data-accessory-details="${item.id}" aria-haspopup="dialog">${item.name}${item.demoFor ? ' <span class="accessory-demo">Демо</span>' : ''}</button>
+        <button class="accessory-title" type="button" data-accessory-details="${item.id}" aria-haspopup="dialog"><span>${item.name}${item.demoFor ? ' <span class="accessory-demo">Демо</span>' : ''}</span></button>
         <div class="accessory-purchase"><strong>${money(item.price)}</strong>
           <button class="btn secondary" type="button" data-add-accessory="${item.id}" aria-label="Добавить ${item.name.toLocaleLowerCase('ru-RU')} в корзину">В корзину</button>
         </div>
