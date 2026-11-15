@@ -3017,7 +3017,7 @@
 .regional-info {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px clamp(24px, 4vw, 58px);
+  gap: 28px 24px;
   padding-top: 30px;
 }
 .regional-info h2, .details h2 { font-size: 21px; margin: 0 0 12px; }
@@ -3036,6 +3036,8 @@ details.product-support-item { padding: 0; }
   line-height: 1.35;
   -webkit-tap-highlight-color: #71263820;
 }
+/* У ссылки разделитель входит в высоту строки, у details он снаружи summary. */
+.product-support-row.product-support-item { min-height: 49px; }
 summary.product-support-row { list-style: none; cursor: pointer; }
 summary.product-support-row::-webkit-details-marker { display: none; }
 .product-support-row:hover { color: var(--green); text-decoration: none; }
