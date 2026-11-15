@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>LEVONI · Кабинет партнёра</title>
+  <link rel="stylesheet" href="../admin/styles.css">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">К рабочей области</a>
+  <header class="topbar">
+    <div class="identity">
+      <button class="icon-btn menu-toggle" type="button" data-action="menu" aria-label="Меню" aria-controls="sidebar" aria-expanded="false">☰</button>
+      <a class="wordmark" href="#orders" aria-label="LEVONI, список заказов">LEVONI</a>
+      <span class="workspace-name">Кабинет партнёра</span>
+      <span class="demo-label">Демо</span>
+    </div>
+    <div class="topbar-tools">
+      <span class="location"><span class="location-dot" aria-hidden="true"></span>Новосибирск</span>
+      <span class="partner-account">Север Камень</span>
+      <span class="avatar" aria-hidden="true">СК</span>
+    </div>
+  </header>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <nav id="navigation" aria-label="Разделы кабинета"></nav>
+      <div class="sidebar-footer"><span class="status-dot" aria-hidden="true"></span>Демонстрационная организация</div>
+    </aside>
+    <main class="workspace" id="workspace" tabindex="-1"></main>
+  </div>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  <div id="notification" class="notification" role="status" aria-live="polite"></div>
+</body>
+</html>
