@@ -150,6 +150,7 @@ function totals(item, tariff) {
 
 const estimateTotal = item => totals(item,item.price).total;
 const selectedEstimate = order => order.estimates.find(item => order.contract?.estimate === item.id) || order.estimates[0];
+const currentDecor = order => selectedEstimate(order)?.decor || order.decor;
 const displayAmount = order => order.contract ? money(order.contract.amount) : order.estimates.length ? money(estimateTotal(order.estimates[0])) : money(order.initial.amount);
 const stepper = order => {
   const current = stages[order.stage][2];
@@ -177,7 +178,7 @@ function visibleOrders() {
   const term = query.trim().toLowerCase();
   return orders.filter(o => {
     const group = filter === 'all' || filter === 'inbox' && o.stage === 'received' || filter === 'active' && !['received','installed'].includes(o.stage) || filter === 'done' && o.stage === 'installed';
-    return group && [o.id,o.name,o.title,decors[o.decor][0]].join(' ').toLowerCase().includes(term);
+    return group && [o.id,o.name,o.title,decors[currentDecor(o)][0]].join(' ').toLowerCase().includes(term);
   });
 }
 
@@ -185,7 +186,7 @@ function leadPreview(order) {
   if (!order) return '<p class="panel-body muted">Выберите заказ из списка.</p>';
   return `<div class="inspector-heading"><p>Заказ №${order.id}</p>${stateBadge(order)}</div><div class="panel-body">
     <div class="inspect-lead"><h2>${esc(order.name)}</h2><p class="secondary-line">${order.city} · ${esc(order.source)}</p></div>
-    <div class="product-teaser">${photo}<div><strong>${esc(order.title)}</strong><p class="secondary-line">${esc(decorName(order.decor))}</p></div></div>
+    <div class="product-teaser">${photo}<div><strong>${esc(order.title)}</strong><p class="secondary-line">${esc(decorName(currentDecor(order)))}</p></div></div>
     ${facts([['Сумма на текущем этапе',displayAmount(order)],['Прайс',priceLabel(order)],['Менеджер LEVONI',order.manager]])}
     <div class="next-step"><p class="secondary-line">Следующий шаг</p><strong>${nextSteps[order.stage]?.[0] || 'Контроль результата LEVONI'}</strong></div>
     ${link('Открыть заказ','order/'+order.id,'primary full')}</div>`;
@@ -198,8 +199,8 @@ function fillQueue() {
   document.querySelector('#orders-list').innerHTML = `<div class="table-wrap"><table class="data-table responsive queue-table">
     <thead><tr><th scope="col">Заказ и клиент</th><th scope="col">Этап</th><th scope="col">Сумма</th><th scope="col">Передан</th></tr></thead><tbody>
     ${items.map(o=>`<tr class="order-row ${o.id===selectedId?'selected':''}"><td>
-      <button type="button" class="record" data-action="select" data-id="${o.id}" aria-pressed="${o.id===selectedId}">${swatch(o.decor)}<span>
-      <strong>${esc(o.title)} · ${decors[o.decor][0]}</strong><span class="secondary-line"><span class="order-id">№${o.id}</span> · ${esc(o.name)}</span></span></button>
+      <button type="button" class="record" data-action="select" data-id="${o.id}" aria-pressed="${o.id===selectedId}">${swatch(currentDecor(o))}<span>
+      <strong>${esc(o.title)} · ${decors[currentDecor(o)][0]}</strong><span class="secondary-line"><span class="order-id">№${o.id}</span> · ${esc(o.name)}</span></span></button>
       </td><td>${stateBadge(o)}</td><td class="amount numeric">${displayAmount(o)}</td><td class="nowrap muted">${o.sent}</td></tr>`).join('') ||
       '<tr><td colspan="4"><p class="empty">Заказы по этим условиям не найдены.</p></td></tr>'}
     </tbody></table></div><div class="table-end">Показано ${items.length} из ${orders.length}</div>`;
@@ -248,14 +249,15 @@ function executionInfo(order) {
     ['Итог договора',money(c.amount)],
     ['Предоплата клиентом',c.prepayment ? money(c.prepayment)+' от '+date(c.paidDate) : 'Ожидается'],
   ];
-  const dates=[['making','Готовность'],['delivery','Доставка назначена'],['delivered','Доставка выполнена'],['install','Монтаж назначен'],['finish','Монтаж завершён']];
+  const dates=[['making','Плановая готовность'],['delivery','Доставка назначена'],['delivered','Доставка выполнена'],['install','Монтаж назначен'],['finish','Монтаж завершён']];
   for(const [key,label] of dates) {
     const entry=order.plan[key];
     if(entry) values.push([label,dateTime(entry)+' · '+entry.owner]);
   }
   if(order.stage==='installed') values.push(['Проверка LEVONI','Ожидается']);
   const actions = !c.prepayment ? `<div class="actions fact-text">${button('Записать предоплату','payment',{id:order.id,style:'small'})}</div>` : '';
-  return panel('Договор и исполнение',facts(values)+actions);
+  const note=c.note ? `<p class="notice fact-text"><strong>К договору:</strong> ${esc(c.note)}</p>` : '';
+  return panel('Договор и исполнение',facts(values)+note+actions);
 }
 
 function orderTabs(order,tab) {
@@ -543,12 +545,12 @@ function submitDialog(element) {
   }
   if(command==='measure') {
     o.measures={length:Number(data.length),depth:Number(data.depth),units:Number(data.units),date:val('date'),note:val('note')}; o.stage='measured';
-    label='Сохранены результаты замера'; log=o.measures.length+' × '+o.measures.depth+' мм, '+o.measures.units+' шт.';
+    label='Сохранены результаты замера'; log=date(o.measures.date)+' · '+o.measures.length+' × '+o.measures.depth+' мм, '+o.measures.units+' шт.'+(o.measures.note?' · '+o.measures.note:'');
   }
   if(command==='contract') {
     if(!val('number')) { issue('Укажите номер договора.'); return; }
     o.contract={number:val('number'),date:val('date'),amount:Number(data.amount),estimate:o.estimates[0].id,prepayment:0,paidDate:'',note:val('note')};
-    o.stage='contracted'; label='Зафиксирован договор'; log=o.contract.number+' · '+money(o.contract.amount);
+    o.stage='contracted'; label='Зафиксирован договор'; log=o.contract.number+' от '+date(o.contract.date)+' · '+money(o.contract.amount)+(o.contract.note?' · '+o.contract.note:'');
   }
   if(command==='payment') {
     if(!o.contract||o.contract.prepayment) return;
@@ -574,7 +576,7 @@ function submitDialog(element) {
   if(operations[command]) {
     const [key,stage,change]=operations[command];
     o.plan[key]=appointment; o.stage=stage;
-    label=change; log=dateTime(appointment)+' · '+appointment.owner;
+    label=change; log=(command==='make'?'Плановая готовность: ':'')+dateTime(appointment)+' · '+appointment.owner;
   }
   if(!label) return;
   if(appointment.note && planned) log+=' · '+appointment.note;

@@ -49,6 +49,7 @@
 #notification { pointer-events: none; }
 .form-error { color: var(--wine); margin-top: 8px; font-size: 13px; font-weight: 700; }
 .form-error:empty { display: none; }
+.fields { align-items: end; }
 
 @media (max-width: 1080px) {
   .partner-queue { grid-template-columns: minmax(0,1fr); }
@@ -62,9 +63,9 @@
 
 @media (max-width: 700px) {
   .partner-account { border: 0; padding: 0; max-width: 125px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }
-  .workflow { grid-template-columns: repeat(5,minmax(0,1fr)); }
+  .workflow { grid-template-columns: repeat(4,minmax(0,1fr)) minmax(68px,1.2fr); }
   .workflow li { flex-direction: column; text-align: center; min-height: 64px; min-width: 0; padding: 7px 3px; font-size: 10px; line-height: 1.15; gap: 5px; }
-  .workflow li span:last-child { overflow-wrap: anywhere; }
+  .workflow li span:last-child { white-space: nowrap; }
   .workflow .step-number { min-width: 20px; min-height: 20px; }
   .order-tabs { gap: 1px; }
   .order-tabs a { padding-inline: 7px; min-height: 44px; }
@@ -72,11 +73,11 @@
   .measure-list li > :nth-child(2) { grid-column: 1; }
   .measure-list li > :last-child { grid-column: 2; grid-row: 1 / span 2; }
   .document-row .btn { min-height: 44px; }
+  .document-row { grid-template-columns: minmax(0,1fr); padding-block: 13px; }
+  .document-row .actions { justify-self: start; margin-left: 25px; }
   .quote-breakdown .money-line strong { white-space: normal; text-align: right; }
 }
 
 @media (max-width: 365px) {
   .order-tabs a { font-size: 12px; }
-  .document-row { grid-template-columns: minmax(0,1fr); }
-  .document-row .actions { justify-self: start; }
 }
