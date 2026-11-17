@@ -3342,11 +3342,12 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .product-contact-icon[data-platform="youtube"] { color: #ff0033; }
     .product-contact svg { width: 22px; height: 22px; flex: none; }
     .product-contact .phone-link svg { width: 18px; height: 18px; }
-    .product-layout .recommendations { gap: 18px; align-self: start; }
+    .product-layout .recommendations { gap: 14px; align-self: start; }
+    .product-layout .recommendation-card img { aspect-ratio: 1.5; object-fit: cover; }
     .product-layout .recommendations h2 { font-size: 19px; }
     .product-layout .recommendation-card h3, .product-layout .recommendation-card strong { font-size: 13px; }
     .product-layout .recommendation-card small { font-size: 12px; line-height: 1.4; }
-    .product-layout .recommendation-grid { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 30px) / 4); grid-template-columns: none; gap: 10px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; padding: 3px 0 6px; }
+    .product-layout .recommendation-grid { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 40px) / 5); grid-template-columns: none; gap: 10px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; padding: 3px 0 6px; }
     .product-layout .recommendation-grid::-webkit-scrollbar { display: none; }
     .recommendation-grid .recommendation-card { scroll-snap-align: start; }
     .recommendation-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -3354,7 +3355,7 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .recommendation-controls { display: flex; flex: 0 0 auto; gap: 5px; }
     .recommendation-controls[hidden] { display: none; }
     .recommendation-controls button { width: 36px; height: 36px; font-size: 20px; }
-    .product-layout .recommendations .review-placeholder { margin-top: 2px; padding-top: 14px; border-top: 1px solid var(--green); }
+    .product-layout .review-placeholder { grid-column: 1 / -1; grid-row: 3; order: 3; padding-top: 14px; border-top: 1px solid var(--green); }
     .review-example { display: grid; grid-template-columns: minmax(0,1fr) 72px; align-items: start; gap: 12px; margin-top: 10px; padding: 12px; border-radius: var(--radius); background: var(--soft); }
     .review-example strong { color: var(--green); font-size: 12px; }
     .review-example img { display: block; width: 72px; aspect-ratio: 1; border-radius: 5px; }
@@ -3435,7 +3436,7 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .product-layout .thumbs { grid-auto-columns: clamp(56px, 9vw, 95px); justify-content: start; overflow-x: auto; padding-bottom: 10px; }
     .product-layout .gallery { padding-bottom: 14px; border-bottom: 1px solid var(--green); }
     @media (min-width: 761px) and (max-width: 1100px) {
-      .product-layout .recommendation-grid { grid-auto-columns: calc((100% - 20px) / 3); }
+      .product-layout .recommendation-grid { grid-auto-columns: calc((100% - 30px) / 4); }
     }
     @media (max-width: 760px) {
       html { scroll-padding-top: 116px; scroll-padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
@@ -4767,6 +4768,7 @@ function productMarkup(p) {
         <div class="recommendations">
           ${p.fixed && !p.table ? "" : recommendationGroup(`Похожие цвета ${materialNames[p.material]}`, same, 'Других оттенков этого материала в выбранном регионе пока нет.')}
           ${p.fixed && !p.table ? '' : recommendationGroup('Похожие цвета в других материалах', other, 'В выбранном регионе пока нет доступных вариантов.')}
+        </div>
           <section class="review-placeholder">
             <h2>Отзывы и фото работ</h2>
             ${['a101', 'r677'].includes(p.id) ? `<div class="review-example">
@@ -4774,7 +4776,6 @@ function productMarkup(p) {
               ${pic(p.photos[0], 'Пример фото изделия из галереи', 'loading=lazy')}
             </div>` : '<p>Отзывов с фотографиями для этого изделия пока нет.</p>'}
           </section>
-        </div>
       </section>
  ${relatedProducts(p)}
  ${renderRegionalInfo(p)}
