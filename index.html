@@ -3134,7 +3134,7 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .storefront :is(.category, .tile) > span, .journal-grid h3 { font-size: clamp(14px, 1.3vw, 18px); }
     .storefront .journal-grid small { font-size: 13px; }
 
-    .home-hero { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 10px; margin-top: var(--home-section-space); }
+    .home-hero { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 10px; margin-top: clamp(22px, 3vw, 44px); }
     .hero-photograph, .shopping-panel { position: relative; overflow: hidden; border-radius: var(--radius); }
     .hero-photograph { min-height: clamp(310px, 34vw, 510px); isolation: isolate; color: white; background: #7b6856; }
     .hero-photograph::after { content: ''; z-index: -1; position: absolute; inset: 0; background: linear-gradient(10deg, #241811ec, #2418112b 53%, transparent 76%); }
@@ -3319,7 +3319,11 @@ summary.product-support-row::-webkit-details-marker { display: none; }
       color: var(--green);
     }
     .product-contact .phone-link { gap: 8px; font-size: 14px; }
-    .product-contact-number { margin-inline-start: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .product-contact-row--messengers { margin-inline-start: 0; column-gap: 2px; }
+    .product-contact-row--messengers .phone-link { margin-inline-end: 6px; }
+    .product-contact-socials .product-contact-icon[data-platform] { color: #695675; }
+    .product-contact-socials [data-platform="vk-video"] .vk-video-background { fill: currentColor; }
+    .product-contact-socials [data-platform="vk-video"] .vk-video-accent { display: none; }
     .product-contact-icon {
       width: 44px;
       justify-content: center;
@@ -4044,7 +4048,7 @@ const contactIcons = {
     instagram: '<rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>',
     pinterest: '<path fill="currentColor" d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 .1-2.9l1.2-5.1s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.7 1.3 1.5 0 .9-.6 2.3-.9 3.6-.3 1.1.6 1.9 1.7 1.9 2 0 3.5-2.1 3.5-5.1 0-2.7-1.9-4.6-4.5-4.6-3.1 0-4.9 2.3-4.9 4.7 0 .9.4 2 1 2.6.1.1.1.2.1.4l-.4 1.4c-.1.2-.2.3-.5.2-1.6-.8-2.6-3-2.6-4.8 0-3.9 2.9-7.4 7.7-7.4 4.1 0 7 2.9 7 6.7 0 4-2.5 7.1-6 7.1-1.1 0-2.2-.6-2.6-1.3l-.7 2.5c-.2.9-.8 2-1.2 2.7.9.3 1.8.5 2.8.5a10 10 0 0 0 0-20Z"/>',
     youtube: '<path fill="currentColor" d="M22 8c-.2-1.5-.9-2.4-2.3-2.6-3.1-.4-12.3-.4-15.4 0C2.9 5.6 2.2 6.5 2 8a32 32 0 0 0 0 8c.2 1.5.9 2.4 2.3 2.6 3.1.4 12.3.4 15.4 0 1.4-.2 2.1-1.1 2.3-2.6a32 32 0 0 0 0-8ZM10 15.5v-7l6 3.5-6 3.5Z"/>',
-    'vk-video': '<rect x="2" y="3" width="20" height="18" rx="5" fill="#0077ff"/><path d="M7 3h10a5 5 0 0 1 5 5v3L8 21H7a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5Z" fill="#ff3347"/><path d="m10 8 6.5 4-6.5 4Z" fill="#fff"/>'
+    'vk-video': '<rect class="vk-video-background" x="2" y="3" width="20" height="18" rx="5" fill="#0077ff"/><path class="vk-video-accent" d="M7 3h10a5 5 0 0 1 5 5v3L8 21H7a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5Z" fill="#ff3347"/><path d="m10 8 6.5 4-6.5 4Z" fill="#fff"/>'
 };
 
 function contactIcon(name) {
@@ -4067,12 +4071,12 @@ function productContact() {
           ${productContactChannel('max', 'MAX', { messenger: true })}
           ${productContactChannel('vk', 'Сообщения ВКонтакте', { messenger: true })}
           ${productContactChannel('telegram', 'Telegram', { messenger: true })}
-          <span class="product-contact-number">${messengerPhone.label}</span>
         </div>
       </div>
-      <div class="product-contact-group" role="group" aria-labelledby="product-socials-label">
+      <div class="product-contact-group product-contact-socials" role="group" aria-labelledby="product-socials-label">
         <span class="product-contact-label" id="product-socials-label">Соцсети</span>
-        <div class="product-contact-row">
+        <div class="product-contact-row product-contact-row--messengers">
+          <a class="phone-link" href="tel:${messengerPhone.number}">${contactIcon('phone')}${messengerPhone.label}</a>
           ${productContactChannel('vk', 'ВКонтакте')}
           ${productContactChannel('pinterest', 'Pinterest')}
           ${productContactChannel('youtube', 'YouTube', { href: 'https://www.youtube.com/@levonico.8936' })}
