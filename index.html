@@ -4067,7 +4067,8 @@ function productContact() {
       <a class="phone-link" href="tel:${federalPhone.number}">${contactIcon('phone')}${federalPhone.label}</a>
       <div class="product-contact-group" role="group" aria-labelledby="product-messengers-label">
         <span class="product-contact-label" id="product-messengers-label">Мессенджеры</span>
-        <div class="product-contact-row">
+        <div class="product-contact-row product-contact-row--messengers">
+          <a class="phone-link" href="tel:${messengerPhone.number}">${contactIcon('phone')}${messengerPhone.label}</a>
           ${productContactChannel('max', 'MAX', { messenger: true })}
           ${productContactChannel('vk', 'Сообщения ВКонтакте', { messenger: true })}
           ${productContactChannel('telegram', 'Telegram', { messenger: true })}
@@ -4075,8 +4076,7 @@ function productContact() {
       </div>
       <div class="product-contact-group product-contact-socials" role="group" aria-labelledby="product-socials-label">
         <span class="product-contact-label" id="product-socials-label">Соцсети</span>
-        <div class="product-contact-row product-contact-row--messengers">
-          <a class="phone-link" href="tel:${messengerPhone.number}">${contactIcon('phone')}${messengerPhone.label}</a>
+        <div class="product-contact-row">
           ${productContactChannel('vk', 'ВКонтакте')}
           ${productContactChannel('pinterest', 'Pinterest')}
           ${productContactChannel('youtube', 'YouTube', { href: 'https://www.youtube.com/@levonico.8936' })}
