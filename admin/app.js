@@ -152,7 +152,7 @@ const quoteOf = id => state.quotes.find(item => item.id === id);
 const priceDate = quote => state.prices.versions.find(item => item.id === quote.priceVersion)?.date;
 const priceLabel = quote => quote.priceVersion + (priceDate(quote) ? ' от ' + dateLabel(priceDate(quote)) : ' · дата не указана');
 const hasDimensions = quote => quote.length >= 100 && quote.length <= 6000 && quote.depth >= 100 && quote.depth <= 2000 && Number.isInteger(Number(quote.units)) && quote.units >= 1 && quote.units <= 12;
-const quoteAmount = quote => hasDimensions(quote) ? currency(totals(quote).total) : 'Нужны размеры';
+const quoteAmount = quote => quoteReady(quote) ? currency(totals(quote).total) : 'Нужны параметры';
 const productImage = decor => state.products.find(item => item.decor === decor)?.image || 'countertop';
 const can = section => navigation.flatMap(([, links]) => links).some(([id,,, roles]) => id === section && roles.includes(role));
 const mainSection = view => ({ lead: 'leads', quote: 'quotes', task: 'production', product: 'catalog', import: 'prices' })[view] || view;
@@ -229,7 +229,7 @@ function leadPreview(item) {
     <div><h2 class="name">${esc(item.name)}</h2><p class="secondary-line">${esc(item.source)}</p>
       <div class="product-teaser">${image(productImage(item.decor))}<div><strong>${esc(item.title)}</strong><p class="secondary-line">${esc(decor.brand + ' ' + decor.code + ' «' + decor.color + '»')}</p></div></div>
     </div>
-    <div>${facts([['Регион', activeRegion], ['Расчёт на витрине', item.estimate === null ? 'Нет расчёта' : currency(item.estimate)], ['Ответственный', person(item.owner)]])}
+    <div>${facts([['Регион', activeRegion], ['Расчёт на витрине', cartOf(item) ? currency(item.estimate) : 'Нет расчёта'], ['Ответственный', person(item.owner)]])}
       <div class="next-step"><p class="secondary-line">Следующий шаг</p><strong>${esc(item.next)}</strong></div>
     </div>
     <div class="actions"><a class="btn primary full" href="#lead/${item.id}">Открыть заявку ${icon('arrow')}</a></div>
@@ -284,23 +284,22 @@ function leadView(item) {
   const details = facts([['Статус', stages[item.stage][0]], ['Ответственный', person(item.owner)], ['Регион', activeRegion], ['Канал', item.source], ['Телефон', item.phone]]);
   const history = `<ol class="timeline">${item.history.map(entry => `<li><span class="timeline-time">${esc(entry.time)}</span><h3>${esc(entry.title)}</h3><p>${esc(entry.text)}</p></li>`).join('')}</ol>`;
   const configuration = `<div class="product-teaser">${image(productImage(item.decor))}<div><strong>${esc(item.title)}</strong>
-    <p class="secondary-line">${esc(decor.brand + ' ' + decor.code + ' «' + decor.color + '»')}</p></div></div>
-    ${facts([['Площадь с витрины', item.area === null ? '—' : number(item.area) + ' м²'],
-      ['Сумма с витрины', item.estimate === null ? 'Нет расчёта' : currency(item.estimate)], ['Оплата', 'Согласует менеджер']])}
-    ${item.note ? `<p class="notice" style="margin-top:14px">${esc(item.note)}</p>` : ''}`;
+    <p class="secondary-line">${esc(colorLabel(decor))}</p></div></div>
+    ${cartOf(item) ? facts(cartFacts(item)) : '<p class="secondary-line">Нет расчёта с витрины. Менеджер заполняет параметры вручную.</p>'}
+    ${item.note ? `<p class="notice">${esc(item.note)}</p>` : ''}`;
   const contact = `${details}<div class="next-step"><p class="secondary-line">Следующий шаг</p><strong>${esc(item.next)}</strong></div>
     <div class="actions">${action('Изменить этап', 'edit-lead', { id: item.id, style: 'small' })}${role === 'leadership' ? action('Назначить', 'assign', { id: item.id, style: 'small' }) : ''}</div>`;
   return back('leads') + headline('Заявка №' + item.id, item.name,
     currentQuote ? `<a class="btn primary" href="#quote/${currentQuote.id}">Открыть расчёт</a>` :
       action('Создать расчёт', 'new-quote', { id: item.id, style: 'primary', glyph: 'plus' }),
     badge(...stages[item.stage])) +
-    `<div class="detail-grid"><div class="stack">${section('Конфигурация с витрины', configuration)}
+    `<div class="detail-grid"><div class="stack">${section(cartOf(item) ? 'Конфигурация с витрины' : 'Исходные данные', configuration)}
       ${section('История общения', history, action('Записать контакт', 'contact', { id: item.id, style: 'small', glyph: 'plus' }))}
-      ${existing.length ? section('Расчёты', existing.map(quote => `<div class="version"><a class="text-link" href="#quote/${quote.id}">№${quote.id} · вариант ${quote.version}</a><strong>${quoteAmount(quote)}</strong></div>`).join('')) : ''}</div>
+      ${existing.length ? section('Расчёты', existing.map(quote => `<div class="version"><a class="text-link" href="#quote/${quote.id}">№${quote.id} · вариант ${quote.version}</a><strong>${quoteAmount(quote)} ${staleQuote(quote) ? badge('Прайс устарел','wine') : ''}</strong></div>`).join('')) : ''}</div>
       <div class="stack">${section('Клиент и следующий шаг', contact)}</div></div>`;
 }
 
-function totals(quote) {
+function legacyTotals(quote) {
   const area = quote.length * quote.depth * quote.units / 1e6;
   const material = Math.round(area * quote.rate);
   const edge = quote.edge === 'radius' ? 1650 * quote.units : 0;
@@ -310,14 +309,144 @@ function totals(quote) {
   return { area, material, edge, cut, delivery, installation, total: material + edge + cut + delivery + installation };
 }
 
-const quoteLabel = quote => quote.state === 'agreed' ? badge('Согласован', 'green') : badge('Черновик', 'amber');
+// Local demo dictionaries. A publication changes the common demo version, not an external price file.
+const managerMaterials = { acrylic: 'Акриловый камень', quartz: 'Кварцевый агломерат' };
+const managerRegions = { moscow: activeRegion, spb: 'Санкт-Петербург и область', kazan: 'Казань и область' };
+const processors = {
+  own: { name: 'Собственное производство', material: 'acrylic', region: 'moscow', decors: ['a101', 'a205'], markup: 0, delivery: [2500, 4500], installPercent: 10, installMin: 12000, edges: ['basic', 'standard', 'classic'] },
+  acrylicPartner: { name: 'Партнёр «Мастерская»', material: 'acrylic', region: 'moscow', decors: ['a205', 'a310'], markup: 1700, delivery: [3000, 5200], installFixed: 9500, edges: ['basic', 'classic'] },
+  spb: { name: 'Партнёр «Север»', material: 'acrylic', region: 'spb', decors: ['a101', 'a310'], markup: 1400, delivery: [2800, 4900], installFixed: 9000, edges: ['basic', 'standard'] },
+  quartzMoscow: { name: 'Партнёр «Кварц»', material: 'quartz', region: 'moscow', decors: ['q301', 'q302'], markup: 0, delivery: [3500, 6000], installPercent: 12, edges: ['basic', 'standard', 'classic'] },
+  quartzKazan: { name: 'Партнёр «Камень»', material: 'quartz', region: 'kazan', decors: ['q301'], markup: 900, delivery: [3200, 4900], installFixed: 11000, edges: ['basic', 'classic'] },
+};
+const managerColorSamples = {
+  a310: { code: 'A310', color: 'Тёплый песок', brand: 'Demo Surface', rate: 26900, slabs: ['3680 × 760 мм'] },
+  q301: { code: 'Q301', color: 'Светлый кварц', brand: 'Demo Quartz', rate: 32500, slabs: ['3200 × 1600 мм', '3000 × 1400 мм'] },
+  q302: { code: 'Q302', color: 'Серый кварц', brand: 'Demo Quartz', rate: 34800, slabs: ['3200 × 1600 мм'] },
+};
+const managerColor = id => managerColorSamples[id] || (decorOf(id) && { ...decorOf(id), slabs: ['3680 × 760 мм'] });
+const managerEdges = { basic: ['Basic', 0], standard: ['Standard', 0], classic: ['Classic+', 1000], radius: ['Радиусная (из прежнего расчёта)', 1650] };
+const managerSkirts = { none: ['Без бортика', 0], model1: ['Бортик №1', 1000], model2: ['Бортик №2', 1550] };
+const availableSkirts = processor => ['none', 'model1', ...(['own','quartzMoscow'].includes(processor) ? ['model2'] : [])];
+const managerSinks = { none: ['Без мойки', 0], integrated: ['Литая', 8500], under: ['Подстольная', 3200], top: ['Накладная', 1900] };
+const managerDeliveries = { none: 'Без доставки', city: 'В городе', region: 'За городом' };
+const readyCatalog = {
+  board: { name: 'Разделочная доска · RD-01', price: 3060 },
+  tray: { name: 'Поднос · TR-02', price: 4800 },
+  shelf: { name: 'Полка · SH-03', price: 6200 },
+};
+const managerChannels = ['Обращение по телефону', 'Мессенджер', 'Корпоративная почта', 'Форма «Вызвать замерщика»', 'Форма «Посмотреть образцы»', 'Запрос спецификации', 'Расчёт по чертежу'];
+const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(new Date());
+const staleQuote = quote => quote.priceVersion !== state.prices.active;
+const quoteEditor = quote => Boolean(quote?.config && quote.state === 'draft' && !staleQuote(quote) && (role === 'leadership' || quote.owner === roleLabels[role][2]));
+const quoteReady = quote => quote.config ? Number(quote.config.area) > 0 && Boolean(quote.config.slab) : hasDimensions(quote);
+const managerDelivery = (q, p = processors[q.processor]) => q.delivery === 'none' ? 0 : q.deliveryOverride ?? p.delivery[q.delivery === 'city' ? 0 : 1];
+const managerInstall = (p, fabrication) => p.installFixed ?? Math.max(p.installMin || 0, Math.round(fabrication * p.installPercent / 100));
+const pairs = obj => Object.entries(obj);
+const pick = (valid, value) => valid.includes(value) ? value : valid[0];
+const colorLabel = d => `${d.brand} ${d.code} · ${d.color}`;
+const managerArea = value => Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 6 }) + ' м²';
+const managerSplit = q => q.processor !== 'own' && q.readyRoute === 'own';
+const managerUsesReady = q => q.processor === 'own' || q.readyRoute === 'own';
+
+function managerCatalog(q) {
+  const regions = [...new Set(Object.values(processors).filter(p => p.material === q.material).map(p => p.region))];
+  const makers = pairs(processors).filter(([, p]) => p.material === q.material && p.region === q.region).map(([id]) => id);
+  const colors = (processors[q.processor]?.decors || []).map(id => [id, managerColor(id)]);
+  const brands = [...new Set(colors.map(([, d]) => d.brand))];
+  return { regions, makers, brands, colors: colors.filter(([, d]) => d.brand === q.brand) };
+}
+
+function alignManagerConfig(q) {
+  q.material = pick(Object.keys(managerMaterials), q.material);
+  q.region = pick(managerCatalog(q).regions, q.region);
+  q.processor = pick(managerCatalog(q).makers, q.processor);
+  q.brand = pick(managerCatalog(q).brands, q.brand);
+  q.decor = pick(managerCatalog(q).colors.map(([id]) => id), q.decor);
+  const slabs = managerColor(q.decor).slabs;
+  q.slab = slabs.length === 1 ? slabs[0] : slabs.includes(q.slab) ? q.slab : '';
+  q.edge = pick([...processors[q.processor].edges, ...(q.edge === 'radius' && q.processor === 'own' ? ['radius'] : [])], q.edge);
+  q.skirt = pick(availableSkirts(q.processor),q.skirt);
+  if (q.material !== 'acrylic' && q.sink === 'integrated') q.sink = 'none';
+  if (q.processor === 'own') q.readyRoute = 'own';
+  return q;
+}
+
+function newManagerConfig(prefill = {}) {
+  return alignManagerConfig({ material:'acrylic', region:'moscow', processor:'own', brand:'Acrylica', decor:'a101', slab:'', area:'',
+    sink:'none', sinkQty:1, edge:'basic', edgeLength:'', skirt:'none', skirtLength:'', extras:[], leftovers:[], discount:0,
+    delivery:'none', deliveryOverride:null, installation:false, installOverride:null, measurement:false, measurePrice:0,
+    readyRoute:'own', ready:[], ...structuredClone(prefill) });
+}
+
+function cartOf(lead) {
+  if (!lead || lead.source !== 'Корзина витрины' || lead.estimate == null) return null;
+  // A seeded payload, not an integration. The first sample reproduces 48 180 ₽ including ready goods.
+  return lead.id === '142'
+    ? newManagerConfig({ decor:lead.decor, area:1.8, sink:'under', delivery:'city', ready:[{ sku:'board', qty:1, discount:0 }] })
+    : newManagerConfig({ decor:lead.decor, area:lead.area ?? '' });
+}
+
+function cartFacts(lead) {
+  const cart = cartOf(lead);
+  if (!cart) return [];
+  return [['Цена на витрине', currency(lead.estimate)], ['Материал и цвет', managerMaterials[cart.material] + ' · ' + colorLabel(managerColor(cart.decor))],
+    ['Регион и обработчик', managerRegions[cart.region] + ' · ' + processors[cart.processor].name], ['Площадь', managerArea(cart.area)],
+    ['Мойка', managerSinks[cart.sink][0]], ['Доставка', managerDeliveries[cart.delivery]], ['Установка', cart.installation ? 'Включена' : 'Не выбрана'],
+    ['Готовые товары', cart.ready.map(r => `${readyCatalog[r.sku].name} × ${r.qty}`).join(', ') || 'Не выбраны']];
+}
+
+function legacyManagerConfig(quote) {
+  const m = legacyTotals(quote);
+  return newManagerConfig({ decor:quote.decor, area:hasDimensions(quote) ? m.area : '', sink:quote.cut ? 'under' : 'none', sinkQty:quote.units,
+    edge:quote.edge === 'radius' ? 'radius' : 'basic', edgeLength:quote.edge === 'radius' ? quote.units : '',
+    delivery:quote.delivery ? 'city' : 'none', installation:Boolean(quote.installation), installOverride:quote.installation ? m.installation : null });
+}
+
+function managerRate(config, version, previous) {
+  if (previous?.config?.processor === config.processor && previous.decor === config.decor && previous.priceVersion === version) return previous.rate;
+  const id = config.decor;
+  const rates = state.prices.versions.find(item => item.id === version)?.rates;
+  return (rates?.[id] ?? managerColor(id).rate) + processors[config.processor].markup;
+}
+
+function totals(quote) {
+  const q = quote.config;
+  if (!q) return legacyTotals(quote);
+  const p = processors[q.processor];
+  const area = Number(q.area);
+  const material = Math.round(area * quote.rate);
+  const sink = managerSinks[q.sink][1] * q.sinkQty;
+  const edge = Math.round(managerEdges[q.edge][1] * Number(q.edgeLength));
+  const skirt = q.skirt === 'none' ? 0 : Math.round(managerSkirts[q.skirt][1] * Number(q.skirtLength));
+  const extras = q.extras.reduce((s,r) => s + r.price, 0);
+  const fabrication = material + sink + edge + skirt + extras;
+  const leftovers = q.leftovers.reduce((s,r) => s + (r.include ? r.cost : 0), 0);
+  // Included remnants are passed through at cost; the fabrication discount does not reduce them.
+  const discount = Math.round(fabrication * q.discount / 100);
+  const delivery = managerDelivery(q,p);
+  const installation = q.installation ? q.installOverride ?? managerInstall(p,fabrication) : 0;
+  const measure = q.measurement ? q.measurePrice : 0;
+  const individual = fabrication - discount + leftovers + delivery + installation + measure;
+  const ready = managerUsesReady(q) ? q.ready.map(row => {
+    const item = readyCatalog[row.sku];
+    const amount = item ? item.price * row.qty : 0;
+    const discount = Math.round(amount * row.discount / 100);
+    return { ...row, item, amount, discountAmount:discount, total:amount - discount };
+  }) : [];
+  const readyTotal = ready.reduce((s,row) => s + row.total,0);
+  return { area, material, sink, edge, skirt, fabrication, leftovers, discount, delivery, installation, measure, individual, ready, readyTotal, total:individual + readyTotal };
+}
+
+const quoteLabel = quote => (quote.state === 'agreed' ? badge('Согласован', 'green') : badge('Черновик', 'amber')) +
+  (staleQuote(quote) ? ' ' + badge('Прайс устарел', 'wine') : '');
 
 function archiveRows() {
   const query = searchTerms.quotes.trim().toLowerCase();
-  const entries = state.quotes.filter(item => `${item.id} ${leadOf(item.lead)?.name} ${decorOf(item.decor).code} ${person(item.owner)}`.toLowerCase().includes(query));
+  const entries = state.quotes.filter(item => `${item.id} ${leadOf(item.lead)?.name} ${managerColor(item.decor).code} ${person(item.owner)}`.toLowerCase().includes(query));
   return table(['Расчёт', 'Декор', 'Версия прайса', 'Ответственный', 'Сумма', 'Статус'], entries.map(item => `<tr>
     ${cell(recordLink('Расчёт №' + item.id, leadOf(item.lead)?.name || 'Заявка №' + item.lead, 'quote/' + item.id))}
-    ${cell(esc(decorOf(item.decor).code), 'Декор')}${cell(esc(item.priceVersion), 'Прайс')}
+    ${cell(esc(managerColor(item.decor).code), 'Декор')}${cell(esc(priceLabel(item)), 'Прайс')}
     ${cell(esc(person(item.owner)), 'Ответственный')}${cell(quoteAmount(item), 'Сумма', 'amount numeric')}${cell(quoteLabel(item))}
   </tr>`).join('')) + `<div class="table-end">Найдено расчётов: ${entries.length}</div>`;
 }
@@ -330,69 +459,176 @@ function quotesView() {
 
 function readQuoteForm(form, quote) {
   const values = new FormData(form);
-  const decor = String(values.get('decor'));
-  return {
-    ...quote, decor, length: values.get('length') === '' ? '' : Number(values.get('length')), depth: values.get('depth') === '' ? '' : Number(values.get('depth')),
-    units: Number(values.get('units')), edge: String(values.get('edge')),
-    cut: values.has('cut'), delivery: values.has('delivery'), installation: values.has('installation'), note: String(values.get('note')).trim(),
-    rate: decor === quote.decor ? quote.rate : decorOf(decor).rate,
-    priceVersion: decor === quote.decor ? quote.priceVersion : state.prices.active,
-  };
+  const text = key => String(values.get(key) ?? '').trim();
+  const optional = key => text(key) === '' ? null : Number(text(key));
+  const q = structuredClone(form.managerDraft?.config || quote.config);
+  for (const key of ['material','region','processor','brand','decor','slab','sink','edge','skirt','delivery','readyRoute']) q[key] = values.has(key) ? text(key) : q[key];
+  for (const key of ['area','edgeLength','skirtLength']) q[key] = optional(key) ?? '';
+  for (const key of ['discount','measurePrice','sinkQty']) q[key] = optional(key) ?? (key === 'sinkQty' ? 1 : 0);
+  for (const key of ['deliveryOverride','installOverride']) q[key] = optional(key);
+  for (const key of ['installation','measurement']) q[key] = values.has(key);
+  q.extras = q.extras.map((_, i) => ({ label:text('extraLabel'+i), price:optional('extraPrice'+i) ?? 0 }));
+  q.leftovers = q.leftovers.map((_, i) => ({ size:text('leftSize'+i), area:optional('leftArea'+i) ?? '', cost:optional('leftCost'+i) ?? 0, include:values.has('leftInclude'+i) }));
+  if (values.has('readySku0')) q.ready = q.ready.map((_, i) => ({ sku:text('readySku'+i), qty:optional('readyQty'+i) ?? 0, discount:optional('readyDiscount'+i) ?? 0 }));
+  alignManagerConfig(q);
+  if (q.processor !== (form.managerDraft?.config || quote.config).processor) {
+    q.deliveryOverride = null;
+    q.installOverride = null;
+  }
+  if (q.delivery === 'none') q.deliveryOverride = null;
+  if (q.skirt === 'none') q.skirtLength = '';
+  if (!q.installation) q.installOverride = null;
+  if (!q.measurement) q.measurePrice = 0;
+  return { ...quote, config:q, decor:q.decor, rate:managerRate(q,quote.priceVersion,quote), note:text('note') };
 }
 
-function quoteFormChanged(form, quote) {
-  const current = readQuoteForm(form, quote);
-  return ['decor','length','depth','units','edge','note','rate','priceVersion'].some(key => String(current[key]) !== String(quote[key])) ||
-    ['cut','delivery','installation'].some(key => Boolean(current[key]) !== Boolean(quote[key]));
+function quoteRows(quote, m = totals(quote)) {
+  const q = quote.config;
+  const d = managerColor(quote.decor);
+  if (!q) return [
+    ['Декор', colorLabel(d)], ['Длина × глубина', `${quote.length} × ${quote.depth} мм`], ['Количество', `${quote.units} шт.`], ['Площадь', `${number(m.area)} м²`],
+    ['Кромка', quote.edge === 'radius' ? 'Радиусная' : 'Прямая'], ['Камень и базовые работы', currency(m.material)],
+    ['Кромка · стоимость', currency(m.edge)], ['Вырез под мойку', quote.cut ? currency(m.cut) : 'Не выбран'],
+    ['Доставка', quote.delivery ? currency(m.delivery) : 'Не выбрана'], ['Установка', quote.installation ? currency(m.installation) : 'Не выбрана'], ['Итого индивидуальные товары', currency(m.total)],
+  ];
+  const measured = (label, size, amount) => `${label}${size === '' ? '' : ' · ' + number(Number(size)) + ' м.п.'} · ${currency(amount)}`;
+  return [
+    ['Материал', managerMaterials[q.material]], ['Регион', managerRegions[q.region]], ['Обработчик', processors[q.processor].name],
+    ['Декор', colorLabel(d)], ['Формат слэба', q.slab || 'Не выбран'], ['Площадь изделия', q.area === '' ? 'Не указана' : managerArea(m.area)],
+    ['Камень и базовые работы', `${currency(m.material)} · ${currency(quote.rate)} / м²`],
+    ['Мойка', managerSinks[q.sink][0] + (q.sink === 'none' ? '' : ` · ${q.sinkQty} шт. · ${currency(m.sink)}`)],
+    ['Лицевая кромка', measured(managerEdges[q.edge][0], q.edgeLength, m.edge)], ['Пристеночный бортик', measured(managerSkirts[q.skirt][0], q.skirtLength, m.skirt)],
+    ...q.extras.map(r => [r.label || 'Дополнительная работа / товар', currency(r.price)]),
+    ['Изготовление', currency(m.fabrication)], ...(q.discount ? [['Скидка на изготовление', `${number(q.discount)}% · −${currency(m.discount)}`], ['Изготовление со скидкой', currency(m.fabrication - m.discount)]] : []),
+    ...q.leftovers.map((r,i) => [`Остаток ${i+1}`, `${r.size || '—'} · ${r.area === '' ? '—' : number(r.area) + ' м²'} · ${r.include ? currency(r.cost) + ' (включён по себестоимости)' : 'не включён'}`]),
+    ['Доставка', managerDeliveries[q.delivery] + (q.delivery === 'none' ? '' : ' · ' + currency(m.delivery))],
+    ['Установка', q.installation ? currency(m.installation) : 'Не выбрана'], ['Замер', q.measurement ? currency(m.measure) : 'Не выбран'],
+    ['Итого индивидуальные товары', currency(m.individual)],
+  ];
+}
+
+function readyRows(m) {
+  return [
+    ...(m.ready || []).filter(r => r.item).map(r => [r.item.name, `${r.qty} шт. × ${currency(r.item.price)}${r.discount ? ` · скидка ${number(r.discount)}% (−${currency(r.discountAmount)})` : ''} · ${currency(r.total)}`]),
+    ['Итого готовые товары', currency(m.readyTotal || 0)],
+  ];
 }
 
 function quoteSummary(quote) {
-  if (!hasDimensions(quote)) return '<p class="notice">Введите точную длину, глубину и количество деталей. После этого появится стоимость.</p>';
   const m = totals(quote);
   const savedTask = state.tasks.find(item => item.lead === quote.lead);
   const otherVersion = savedTask && savedTask.quote !== quote.id;
-  const materialLabel = 'Камень и базовые работы · ' + number(m.area) + ' м²';
-  return `${facts([['Прайс', priceLabel(quote)], ['Ставка', currency(quote.rate) + ' / м²'], ['Артикул цвета', decorOf(quote.decor).code]])}
-    <div style="margin-top:12px">${rowMoney(materialLabel,m.material)}${m.edge ? rowMoney('Радиусная кромка',m.edge) : ''}${m.cut ? rowMoney('Вырез под мойку',m.cut) : ''}${m.delivery ? rowMoney('Доставка',m.delivery) : ''}${m.installation ? rowMoney('Установка',m.installation) : ''}${rowMoney('Итого',m.total,true)}</div>
-    ${m.installation ? '<p class="secondary-line" style="margin-bottom:10px">Пример установки: 10% от изделия и платных работ, минимум 12 000 ₽. Без доставки в базе. Базу и ставки нужно согласовать.</p>' : ''}
-    <p class="notice">Демонстрационные ставки. Состав работ и параметры расчёта согласуются перед запуском.</p>
-    ${otherVersion ? `<p class="notice" style="margin-top:12px">В производстве задание №${savedTask.id} по расчёту №${savedTask.quote}. Этот вариант не заменяет переданный расчёт.</p>` : ''}
-    ${quote.state === 'agreed' && canManageLead(leadOf(quote.lead)) ? `<div class="actions" style="margin-top:14px">${savedTask ? `<a class="btn full" href="#task/${savedTask.id}">${otherVersion ? 'Открыть переданное задание' : 'Открыть задание'}</a>` : action('Передать в производство', 'send-task', { id: quote.id, style: 'primary full' })}</div>` : ''}`;
+  const taskLink = savedTask && canManageLead(leadOf(quote.lead)) ? `<a class="btn full" href="#task/${savedTask.id}">${otherVersion ? 'Открыть переданное задание' : 'Открыть задание'}</a>` : '';
+  const canSend = !staleQuote(quote) && quote.state === 'agreed' && canManageLead(leadOf(quote.lead)) && (!quote.config || quote.config.processor === 'own');
+  const taskAction = taskLink || (canSend ? action('Передать в производство', 'send-task', { id:quote.id, style:'primary full' }) : '');
+  return `${facts([['Прайс', priceLabel(quote)]])}
+    ${quoteReady(quote) ? `${facts(quoteRows(quote,m))}${quote.config ? facts(readyRows(m)) : ''}${rowMoney('Итоговая сумма проекта', m.total, true)}` : '<p class="notice">Для итоговой суммы укажите площадь изделия и формат слэба.</p>'}
+    ${quote.config && managerSplit(quote.config) && m.ready.some(r => r.item) ? '<p class="notice">Готовые товары отгружаются отдельно. Их сумма входит в итог проекта, но для отгрузки используется отдельная спецификация.</p>' : ''}
+    ${otherVersion ? `<p class="notice">Уже есть задание №${savedTask.id} по расчёту №${savedTask.quote}. Новый вариант его не заменяет.</p>` : ''}
+    ${taskAction ? `<div class="actions">${taskAction}</div>` : ''}`;
+}
+
+function managerGroup(title, body) {
+  return `<section class="manager-quote-group form-rows"><h3>${esc(title)}</h3>${body}</section>`;
+}
+
+function managerFormFields(quote, editable) {
+  const q = quote.config;
+  const p = processors[q.processor];
+  const { regions, makers, brands, colors } = managerCatalog(q);
+  const d = managerColor(q.decor);
+  const lock = editable ? '' : ' disabled';
+  const select = (label, key, choices, value = q[key], attrs = '') => field(label, `<select name="${key}"${lock} ${attrs}>${options(choices,value)}</select>`);
+  const input = (key, value, attrs = '') => `<input name="${key}" value="${esc(value ?? '')}"${lock} ${attrs}>`;
+  const quantity = (label, key, value, { min=0, max=100000000, step=1, required=true, placeholder='' } = {}) =>
+    field(label,input(key,value,`type="number" min="${min}" max="${max}" step="${step}"${required ? ' required' : ''}${placeholder !== '' ? ` placeholder="${esc(placeholder)}"` : ''}`));
+  const check = (label,key,checked) => `<label class="check"><input type="checkbox" name="${key}"${checked ? ' checked' : ''}${lock}>${esc(label)}</label>`;
+  const names = (list, dict) => list.map(key => [key,dict[key]]);
+  const costs = (list, dict) => list.map(key => [key, `${dict[key][0]} · ${currency(dict[key][1])}${dict[key][1] ? ' / м.п.' : ''}`]);
+  const buttons = (label, group, index = '') => editable ? `<div class="actions">${action(label, index === '' ? 'manager-add-row' : 'manager-remove-row', { style:'small', id:quote.id, extra:`data-group="${group}" data-index="${index}"`, glyph:index === '' ? 'plus' : '' })}</div>` : '';
+  const shelfOptions = [['','Выберите товар'], ...pairs(readyCatalog).map(([id,item]) => [id, `${item.name} · ${currency(item.price)} / шт.`])];
+  const unitPrice = q.installation ? managerInstall(p,totals(quote).fabrication) : 0;
+  const installRule = p.installFixed === undefined ? `${p.installPercent}% от изготовления до скидки${p.installMin ? ' (от ' + currency(p.installMin) + ')' : ''}` : `фиксированно ${currency(p.installFixed)}`;
+  return managerGroup('Материал и параметры изделия', `<div class="fields">${select('Материал','material',pairs(managerMaterials))}
+    ${select('Регион','region',names(regions,managerRegions))}${select('Обработчик','processor',makers.map(id => [id,processors[id].name]))}
+    ${field('Версия прайса',`<input value="${esc(priceLabel(quote))}" readonly>`)}${select('Бренд','brand',brands.map(x => [x,x]))}
+    ${select('Цвет','decor',colors.map(([id,c]) => [id,`${c.code} · ${c.color}`]))}
+    ${select('Размер слэба','slab',[...(d.slabs.length > 1 ? [['','Выберите формат']] : []),...d.slabs.map(x => [x,x])],q.slab,'required')}
+    ${quantity('Общая площадь изделия, м²','area',q.area,{min:.000001,max:10000,step:.000001})}
+    ${select('Тип мойки','sink',pairs(managerSinks).filter(([id]) => id !== 'integrated' || q.material === 'acrylic').map(([id,[label]]) => [id,label]))}
+    ${q.sink !== 'none' ? quantity('Количество моек / вырезов','sinkQty',q.sinkQty,{min:1,max:100}) : ''}</div>`) +
+  managerGroup('Кромка и бортик', `<div class="fields">${select('Лицевая кромка','edge',costs([...p.edges,...(q.edge === 'radius' ? ['radius'] : [])],managerEdges))}
+    ${quantity('Длина кромки, м.п.','edgeLength',q.edgeLength,{step:.001,max:10000,min:managerEdges[q.edge][1] ? .001 : 0,required:Boolean(managerEdges[q.edge][1])})}
+    ${select('Пристеночный бортик','skirt',costs(availableSkirts(q.processor),managerSkirts))}
+    ${q.skirt !== 'none' ? quantity('Длина бортика, м.п.','skirtLength',q.skirtLength,{step:.001,min:.001,max:10000}) : ''}</div>`) +
+  managerGroup('Дополнительные работы и товары', `${q.extras.length ? q.extras.map((r,i) => `<div class="manager-quote-row form-rows"><div class="fields">${field('Работа / товар '+(i+1),input('extraLabel'+i,r.label,'required maxlength="100"'))}${quantity('Стоимость, ₽','extraPrice'+i,r.price)}</div>${buttons('Удалить позицию '+(i+1),'extras',i)}</div>`).join('') : '<p class="secondary-line">Нет дополнительных позиций.</p>'}${buttons('Добавить работу или товар','extras')}`) +
+  managerGroup('Остатки материала', `${q.leftovers.length ? q.leftovers.map((r,i) => `<div class="manager-quote-row form-rows"><div class="fields">${field('Размер остатка '+(i+1),input('leftSize'+i,r.size,'required maxlength="80" placeholder="2100 × 345 мм"'))}${quantity('Площадь, м²','leftArea'+i,r.area,{step:.001,min:.001,max:10000})}${quantity('Себестоимость, ₽','leftCost'+i,r.cost)}</div>${check('Включить по себестоимости','leftInclude'+i,r.include)}${buttons('Удалить остаток '+(i+1),'leftovers',i)}</div>`).join('') : '<p class="secondary-line">Остатки не указаны.</p>'}${buttons('Добавить остаток','leftovers')}`) +
+  managerGroup('Скидка и услуги', `${quantity('Скидка на изготовление, %','discount',q.discount,{max:100,step:.01,required:false})}
+    <p class="secondary-line">Скидка не действует на остатки по себестоимости, доставку, установку и замер.</p>
+    <div class="fields">${select('Доставка','delivery',pairs(managerDeliveries))}
+    ${q.delivery !== 'none' ? quantity('Стоимость доставки, ₽ · по прайсу '+currency(managerDelivery({...q,deliveryOverride:null})), 'deliveryOverride',q.deliveryOverride,{required:false,placeholder:managerDelivery({...q,deliveryOverride:null})}) : ''}</div>
+    ${check('Нужна установка','installation',q.installation)}
+    ${q.installation ? `${quantity('Стоимость установки, ₽','installOverride',q.installOverride,{required:false,placeholder:unitPrice})}<p class="secondary-line">По прайсу: ${esc(installRule)}. Пустое поле — ставка прайса.</p>` : ''}
+    ${check('Нужен замер','measurement',q.measurement)}${q.measurement ? quantity('Стоимость замера, ₽','measurePrice',q.measurePrice) : ''}`) +
+  managerGroup('Готовые товары', `${q.processor === 'own' ? '<p class="secondary-line">Отгрузка со своего производства, в общей спецификации.</p>' :
+    select('Кто отгружает готовые товары','readyRoute',[['own','Своё производство · отдельная спецификация'],['partner','Партнёр · вручную в дополнительных позициях']])}
+    ${managerUsesReady(q) ? `${q.ready.length ? q.ready.map((r,i) => `<div class="manager-quote-row form-rows">${select('Товар '+(i+1),'readySku'+i,shelfOptions,r.sku,'required')}<div class="fields">${quantity('Количество, шт.','readyQty'+i,r.qty,{min:1,max:1000})}${quantity('Скидка на товар, %','readyDiscount'+i,r.discount,{max:100,step:.01,required:false})}</div>${buttons('Удалить товар '+(i+1),'ready',i)}</div>`).join('') : '<p class="secondary-line">Готовые товары не выбраны.</p>'}${buttons('Добавить готовый товар','ready')}` :
+    `<p class="notice">Внесите товар партнёра вручную в «Дополнительные работы и товары».${q.ready.length ? ' Товары со своего производства сохранены в черновике, но не входят в сумму на этом маршруте.' : ''}</p>`}`) +
+  managerGroup('Примечание для клиента', field('Примечание к спецификации',`<textarea name="note" maxlength="1000"${lock}>${esc(quote.note)}</textarea>`)) +
+  (editable ? '<p class="secondary-line" id="quote-save-status" role="status">Расчёт сохранён в этом браузере.</p><div class="actions"><button class="btn primary" type="submit">Сохранить расчёт</button></div>' : '');
 }
 
 function quoteView(quote) {
   if (!quote) return missing('quotes');
-  const owner = roleLabels[role][2];
   const lead = leadOf(quote.lead);
-  const editable = quote.state === 'draft' && (role === 'leadership' || quote.owner === owner);
-  const locked = editable ? '' : ' disabled';
-  const size = (name, value, min, max) => `<input type="number" name="${name}" min="${min}" max="${max}" required value="${value}"${locked}>`;
-  const selectedDecor = decorOf(quote.decor);
-  const form = `<form id="quote-form" data-entity="${quote.id}" class="form-rows">
-    <div class="fields quote-material">${field('Материал', '<input value="Акриловый камень" readonly>')}
-      ${field('Декор', `<select name="decor"${locked}>${options(state.decors.map(item => [item.id, item.brand + ' ' + item.code + ' · ' + item.color]), quote.decor)}</select>`)}</div>
-    <div class="fields three">${field('Длина, мм', size('length', quote.length, 100, 6000))}
-      ${field('Глубина, мм', size('depth', quote.depth, 100, 2000))}
-      ${field('Деталей, шт.', size('units', quote.units, 1, 12))}</div>
-    ${field('Кромка', `<select name="edge"${locked}>${options([['straight','Прямая'],['radius','Радиусная']], quote.edge)}</select>`)}
-    <label class="check"><input type="checkbox" name="cut"${quote.cut ? ' checked' : ''}${locked}>Вырез под мойку</label>
-    <label class="check"><input type="checkbox" name="delivery"${quote.delivery ? ' checked' : ''}${locked}>Включить доставку</label>
-    <label class="check"><input type="checkbox" name="installation"${quote.installation ? ' checked' : ''}${locked}>Включить установку</label>
-    ${field('Примечание к спецификации', `<textarea name="note"${locked}>${esc(quote.note)}</textarea>`)}
-    ${editable ? '<p class="secondary-line" id="quote-save-status" role="status">Расчёт сохранён в этом браузере.</p><div class="actions"><button class="btn primary" type="submit">Сохранить расчёт</button></div>' : ''}
-  </form>`;
-  const memo = quote.state === 'agreed' ? 'Согласованный вариант. Для пересчёта создайте новый вариант.' :
-    editable ? 'Укажите точные размеры. При смене декора геометрия сохраняется, ставка берётся из действующего прайса.' :
-    'Расчёт другого менеджера открыт для просмотра. Новый вариант можно сохранить отдельно.';
-  const source = lead && lead.area !== null && lead.estimate !== null ? `<p class="notice" style="margin-bottom:14px">На витрине: ${number(lead.area)} м², ${currency(lead.estimate)}. При тех же параметрах сверьте исходную сумму. Изменения размеров, услуг или прайса согласуйте с клиентом.</p>` : '';
-  return back('quotes') + headline('Расчёт №' + quote.id, (lead?.name || 'Заявка №' + quote.lead) + ' · ' + selectedDecor.code + ' · вариант ' + quote.version,
-    action('Создать вариант', 'copy-quote', { id: quote.id, glyph: 'plus' }), quoteLabel(quote)) +
-    `<div class="detail-grid quote-layout">
-      <div class="quote-parameters">${section('Параметры расчёта', `${source}<p class="secondary-line" style="margin-bottom:14px">${memo}</p>${form}`)}</div>
+  const editable = quoteEditor(quote);
+  const stale = staleQuote(quote);
+  const quoteCommands = stale ? action('Пересчитать по актуальному прайсу', 'reprice-quote', { id:quote.id, style:'primary', glyph:'calculator' }) :
+    action('Создать вариант', 'copy-quote', { id:quote.id, glyph:'plus' });
+  const memo = stale ? '<p class="notice">Расчёт выполнен по неактуальному прайсу. Цены недействительны. Пересчёт создаст новый вариант, не меняя архив.</p>' :
+    !editable ? '<p class="notice">Расчёт доступен только для просмотра. Для изменений создайте новый вариант.</p>' : '';
+  const source = cartOf(lead) ? managerGroup('Исходный расчёт с витрины', `<div class="product-teaser">${image(productImage(lead.decor))}<strong>${esc(lead.title)}</strong></div>${facts(cartFacts(lead))}`) : '<p class="secondary-line">Ручной расчёт: конфигурации и цены с витрины нет.</p>';
+  const form = quote.config ? `<form id="quote-form" data-entity="${esc(quote.id)}" class="form-rows manager-quote-form">${managerFormFields(quote,editable)}</form>` : facts(quoteRows(quote));
+  const documents = `<div class="actions">${stale ? '' : action('Скачать спецификацию PDF', 'export-quote', { id:quote.id, glyph:'file', extra:!editable && !quoteReady(quote) ? 'disabled' : '' })}
+    ${!stale ? `<span id="manager-ready-document">${readyDocumentButton(quote)}</span>` : ''}
+    ${editable && canManageLead(lead) ? action('Согласовать расчёт', 'agree-quote', { id:quote.id, style:'outline' }) : ''}
+    ${canManageLead(lead) ? `<a class="btn" href="#lead/${lead.id}">Открыть заявку</a>` : ''}</div>`;
+  return back('quotes') + headline('Расчёт №' + quote.id, (lead?.name || 'Заявка №' + quote.lead) + ' · ' + managerColor(quote.decor).code + ' · вариант ' + quote.version,quoteCommands,quoteLabel(quote)) +
+    `<div class="detail-grid quote-layout"><div class="quote-parameters">${section('Параметры расчёта', `<div class="form-rows">${memo}${source}${form}</div>`)}</div>
       <section class="panel quote-cost"><div class="panel-head"><h2>Стоимость</h2></div><div id="quote-summary" class="panel-body">${quoteSummary(quote)}</div></section>
-      <div class="quote-specification">${section('Спецификация', `<div class="actions">${action('Скачать спецификацию', 'export-quote', { id: quote.id, glyph: 'file', extra: !editable && !hasDimensions(quote) ? 'disabled' : '' })}
-        ${editable && canManageLead(lead) ? action('Согласовать расчёт', 'agree-quote', { id: quote.id, style: 'outline' }) : ''}
-        ${canManageLead(lead) ? `<a class="btn" href="#lead/${lead.id}">Открыть заявку</a>` : ''}</div><p class="secondary-line" style="margin-top:10px">Пример в TXT. ${editable ? 'При скачивании текущие параметры сохраняются в расчёте.' : 'Документ содержит сохранённые параметры этого варианта.'}</p>`)}</div></div>`;
+      <div class="quote-specification">${section('Спецификация', documents + '<p class="secondary-line">Локальное демо: справочники, маршруты, ставки и документы служат примерами.</p>')}</div></div>`;
+}
+
+function readyDocumentButton(quote) {
+  return quote.config && managerSplit(quote.config) && quote.config.ready.some(row => row.sku) ? action('Скачать отдельную спецификацию готовых товаров', 'export-ready', { id:quote.id, glyph:'file' }) : '';
+}
+
+function refreshQuoteForm(form, quote, draft, focusedName = '') {
+  form.innerHTML = managerFormFields(draft,true);
+  if (focusedName) form.elements.namedItem(focusedName)?.focus({ preventScroll:true });
+  showQuoteDraft(quote,draft,form);
+}
+
+function showQuoteDraft(quote, draft, form) {
+  form.managerDraft = draft;
+  document.querySelector('#quote-summary').innerHTML = quoteSummary(draft);
+  document.querySelector('#manager-ready-document').innerHTML = readyDocumentButton(draft);
+  const changed = JSON.stringify(draft.config) !== JSON.stringify(quote.config) || draft.note !== quote.note;
+  document.querySelector('#quote-save-status').textContent = changed ? 'Есть несохранённые изменения.' : 'Расчёт сохранён в этом браузере.';
+  document.querySelector('[data-action="export-quote"]').innerHTML = icon('file') + (changed ? 'Сохранить и скачать PDF' : 'Скачать спецификацию PDF');
+  const override = document.querySelector('#quote-form [name=installOverride]');
+  if (override) override.placeholder = managerInstall(processors[draft.config.processor], totals(draft).fabrication);
+}
+
+function validQuoteDraft(form, quote) {
+  if (!form?.reportValidity()) return null;
+  const draft = readQuoteForm(form,quote);
+  if (!quoteReady(draft)) return null;
+  if (draft.config.extras.some(row => !row.label) || draft.config.leftovers.some(row => !row.size)) {
+    message('Заполните названия дополнительных позиций и размеры остатков.');
+    return null;
+  }
+  return draft;
 }
 
 function productionView() {
@@ -409,11 +645,9 @@ function taskView(task) {
   if (!task || !canManageLead(leadOf(task.lead))) return missing('production');
   const quote = quoteOf(task.quote);
   const lead = leadOf(task.lead);
-  const decor = decorOf(quote.decor);
   const specification = `<div class="attachment">${icon('file')}<span>${esc(task.drawing)}</span></div>
     <p class="secondary-line" style="margin:6px 0 13px">Название чертежа в демонстрационном задании.</p>
-    ${facts([['Изделие', lead.title], ['Декор', decor.brand + ' ' + decor.code], ['Длина × глубина', quote.length + ' × ' + quote.depth + ' мм'],
-      ['Количество', quote.units + ' шт.'], ['Кромка', quote.edge === 'radius' ? 'Радиусная' : 'Прямая'], ['Вырез под мойку', quote.cut ? 'Включён' : 'Не выбран'], ['Прайс', priceLabel(quote)], ['Доставка', quote.delivery ? 'Включена' : 'Не выбрана'], ['Установка', quote.installation ? 'Включена' : 'Не выбрана'], ['Цена по расчёту', currency(totals(quote).total)]])}
+    ${facts([['Изделие', lead.title], ['Прайс', priceLabel(quote)], ...quoteRows(quote), ...(quote.config ? readyRows(totals(quote)) : []), ['Цена по расчёту', currency(totals(quote).total)]])}
     ${quote.note ? `<p class="notice" style="margin-top:13px"><strong>Примечание к расчёту:</strong> ${esc(quote.note)}</p>` : ''}
     ${task.note ? `<p class="notice" style="margin-top:13px">${esc(task.note)}</p>` : ''}`;
   const cost = `${rowMoney('Материал', task.materials)}${rowMoney('Работы', task.works)}${rowMoney('Комплектующие', task.parts)}
@@ -611,25 +845,71 @@ function updateLead(lead, title, detail) {
   addLog(title + ' · заявка №' + lead.id, detail);
 }
 
-function quoteDownload(quote) {
-  const decor = decorOf(quote.decor);
+function managerSpecification(quote, readyOnly = false) {
   const m = totals(quote);
-  const lines = ['LEVONI · Пример спецификации', 'Расчёт №' + quote.id + ', вариант ' + quote.version,
-    'Заявка №' + quote.lead, 'Москва и область', '', decor.brand + ' ' + decor.code + ' «' + decor.color + '»',
-    'Размер детали: ' + quote.length + ' × ' + quote.depth + ' мм', 'Количество: ' + quote.units,
-    'Площадь: ' + number(m.area) + ' м²', 'Прайс: ' + priceLabel(quote),
-    'Статус: ' + (quote.state === 'agreed' ? 'Согласован с клиентом' : 'Черновик, не согласован'),
-    'Камень и базовые работы: ' + currency(m.material), 'Радиусная кромка: ' + currency(m.edge),
-    'Вырез: ' + currency(m.cut), 'Доставка: ' + currency(m.delivery), 'Установка: ' + currency(m.installation),
-    ...(quote.installation ? ['Демо установки: 10% от изделия и платных работ, минимум 12 000 ₽; доставка исключена из базы.'] : []),
-    'Итого: ' + currency(m.total), '', 'Демонстрационные данные. Состав работ, база и ставки требуют согласования.', '', quote.note];
-  const url = URL.createObjectURL(new Blob([lines.join('\n')], { type:'text/plain;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'LEVONI-spec-' + quote.id + '.txt';
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url),1000);
-  message('Спецификация сохранённого расчёта скачана.');
+  const q = quote.config;
+  const d = managerColor(quote.decor);
+  const split = q && managerSplit(q);
+  const lead = leadOf(quote.lead);
+  return {
+    id: readyOnly ? `${quote.id}-ГТ` : quote.id,
+    date: dateLabel(quote.date || priceDate(quote) || seedDate),
+    manager: person(quote.owner), client:lead?.name || 'Не указан',
+    individual: readyOnly ? [['Индивидуальные товары', 'В отдельной спецификации №' + quote.id]] : [
+      ['Заявка', '№' + quote.lead], ['Изделие', lead?.title || 'Столешница'], ['Версия прайса', priceLabel(quote)], ...quoteRows(quote,m),
+    ],
+    ready: split && !readyOnly && m.ready.length ? [['Готовые товары', `В отдельной спецификации №${quote.id}-ГТ`], ['Итого по этому документу', currency(0)]] : readyRows(m),
+    total: currency(readyOnly ? m.readyTotal : split ? m.individual : m.total),
+    note:quote.note || '',
+    decorImage: !readyOnly && d.chip ? `assets/${d.chip}.webp` : '',
+    edgeImage: readyOnly ? '' : 'assets/manager-edge.webp',
+  };
+}
+
+async function quoteDownload(quote, readyOnly) {
+  if (typeof downloadManagerSpecification !== 'function') {
+    message('Модуль скачивания PDF пока недоступен.');
+    return;
+  }
+  try {
+    await downloadManagerSpecification(managerSpecification(quote, readyOnly));
+    message('Спецификация PDF сформирована.');
+  } catch {
+    message('Не удалось сформировать PDF. Повторите скачивание.');
+  }
+}
+
+function makeQuote(lead, config) {
+  return { id:nextId(state.quotes,75), lead:lead.id, decor:config.decor, owner:lead.owner || 'elena',
+    rate:managerRate(config,state.prices.active), priceVersion:state.prices.active, version:1, parent:'',
+    state:'draft', time:time(), date:today(), note:'', config };
+}
+
+function makeQuoteVariant(source, reprice) {
+  const config = structuredClone(source.config || legacyManagerConfig(source));
+  const priceVersion = reprice ? state.prices.active : source.priceVersion;
+  const rate = reprice ? managerRate(config,priceVersion) : source.rate;
+  const version = 1 + Math.max(...state.quotes.filter(item => item.lead === source.lead).map(item => item.version));
+  const next = { ...source, config, rate, priceVersion, version, id:nextId(state.quotes,75), parent:source.id,
+    owner:role === 'manager' ? roleLabels[role][2] : source.owner, state:'draft', time:time(), date:today() };
+  state.quotes.unshift(next);
+  addLog(`${reprice ? 'Пересчитан' : 'Создан'} вариант №${next.id}`, `На основе расчёта №${source.id} · ${priceLabel(next)}`);
+  navigate('quote/' + next.id);
+}
+
+function changeManagerRows(quote, control, remove) {
+  if (!quoteEditor(quote)) return;
+  const form = document.querySelector('#quote-form');
+  if (form?.dataset.entity !== quote.id) return;
+  const emptyRows = { extras:{ label:'', price:0 }, leftovers:{ size:'', area:'', cost:0, include:false }, ready:{ sku:'', qty:1, discount:0 } };
+  const names = { extras:'extraLabel', leftovers:'leftSize', ready:'readySku' };
+  const { group, index } = control.dataset;
+  if (!Object.hasOwn(emptyRows,group)) return;
+  const draft = readQuoteForm(form,quote);
+  if (remove) draft.config[group].splice(Number(index),1);
+  else draft.config[group].push(emptyRows[group]);
+  refreshQuoteForm(form,quote,draft,remove ? '' : names[group] + (draft.config[group].length - 1));
+  if (remove) form.querySelector(`[data-action="manager-add-row"][data-group="${group}"]`)?.focus({ preventScroll:true });
 }
 
 function closeMenu() {
@@ -670,7 +950,7 @@ function handleAction(control) {
         '<p class="notice">Используйте только вымышленные имя и телефон. Это демо: данные остаются в этом браузере, заявка не отправляется в CRM.</p>' +
         field('Имя клиента','<input name="name" required maxlength="60" autocomplete="off">') +
         field('Телефон','<input name="phone" type="tel" required maxlength="40" autocomplete="off">') +
-        field('Канал',`<select name="source">${options(sources.map(item => [item,item]),sources[0])}</select>`) +
+        field('Канал',`<select name="source">${options(managerChannels.map(item => [item,item]),managerChannels[0])}</select>`) +
         field('Декор',`<select name="decor">${options(state.decors.map(item => [item.id, item.code + ' · ' + item.color]),'a101')}</select>`) +
         field('Комментарий','<textarea name="note" maxlength="350"></textarea>'),'Создать заявку');
       break;
@@ -692,46 +972,51 @@ function handleAction(control) {
         field('Менеджер',`<select name="owner">${options(Object.entries(staff).slice(0,2),lead.owner)}</select>`),'Назначить');
       break;
     case 'new-quote': {
+      if (!canManageLead(lead)) break;
       const same = state.quotes.find(item => item.lead === id);
       if (same) { navigate('quote/' + same.id); break; }
-      const q = { id: nextId(state.quotes,75), lead:id, decor:lead.decor, owner: lead.owner || 'elena',
-        length: '', depth: '', units: 1, edge:'straight', cut:false, delivery:false, installation:false, note:'',
-        rate: decorOf(lead.decor).rate, priceVersion:state.prices.active, version:1, parent:'', state:'draft', time:time() };
+      const q = makeQuote(lead,cartOf(lead) || newManagerConfig({ decor:lead.decor }));
       state.quotes.unshift(q);
       updateLead(lead,'Создан черновик расчёта','Расчёт №' + q.id);
       navigate('quote/' + q.id);
       break;
     }
+    case 'manager-add-row': changeManagerRows(quote,control,false); break;
+    case 'manager-remove-row': changeManagerRows(quote,control,true); break;
     case 'copy-quote': {
+      if (!quote || staleQuote(quote)) break;
       const form = document.querySelector('#quote-form');
-      const editing = form?.querySelector('input[name="length"]:enabled');
-      if (editing && !form.reportValidity()) break;
-      const source = editing ? readQuoteForm(form,quote) : quote;
-      const next = { ...source, id:nextId(state.quotes,75), version:1+Math.max(...state.quotes.filter(item => item.lead===quote.lead).map(item => item.version)),
-        parent:quote.id, owner: role === 'manager' ? 'elena' : quote.owner, state:'draft', time:time() };
-      state.quotes.unshift(next);
-      addLog('Создан вариант №' + next.id,'На основе расчёта №' + quote.id + ' · ' + next.priceVersion);
-      navigate('quote/' + next.id);
+      // Copy the live form without changing the original, including a work-in-progress.
+      const source = quoteEditor(quote) && form?.dataset.entity === id ? readQuoteForm(form,quote) : quote;
+      makeQuoteVariant(source,false);
       break;
     }
-    case 'export-quote': {
+    case 'reprice-quote': {
+      if (quote && staleQuote(quote)) makeQuoteVariant(quote,true);
+      break;
+    }
+    case 'export-quote':
+    case 'export-ready': {
+      if (!quote || staleQuote(quote)) break;
       const form = document.querySelector('#quote-form');
-      if (form?.querySelector('input[name="length"]:enabled')) {
-        if (!form.reportValidity()) break;
-        if (quoteFormChanged(form, quote)) {
-          Object.assign(quote, readQuoteForm(form, quote), { time: time() });
+      if (quoteEditor(quote)) {
+        const draft = validQuoteDraft(form,quote);
+        if (!draft) break;
+        if (JSON.stringify(draft.config) !== JSON.stringify(quote.config) || draft.note !== quote.note) {
+          Object.assign(quote,draft,{ time:time(), date:today() });
           addLog('Сохранён расчёт №' + quote.id, 'Перед скачиванием спецификации · ' + priceLabel(quote));
           render();
         }
       }
-      if (!hasDimensions(quote)) { message('Для спецификации нужны точные размеры.'); break; }
-      quoteDownload(quote);
+      if (!quoteReady(quote)) { message('Для спецификации укажите параметры изделия.'); break; }
+      if (command === 'export-ready' && (!quote.config || !managerSplit(quote.config) || !quote.config.ready.length)) break;
+      quoteDownload(quote,command === 'export-ready');
       break;
     }
     case 'agree-quote': {
-      const form = document.querySelector('#quote-form');
-      if (!form.reportValidity()) break;
-      const data = readQuoteForm(form,quote);
+      if (!quoteEditor(quote) || !canManageLead(leadOf(quote.lead))) break;
+      const data = validQuoteDraft(document.querySelector('#quote-form'),quote);
+      if (!data) break;
       showForm('Зафиксировать согласование',command,id,`<p>Сохранится расчёт №${quote.id}, вариант ${quote.version}, на ${currency(totals(data).total)} по прайсу ${esc(priceLabel(data))}.</p>
         <label class="check"><input type="checkbox" required name="confirmation">Клиент подтвердил сумму и состав</label>`,'Зафиксировать согласование');
       break;
@@ -739,6 +1024,7 @@ function handleAction(control) {
     case 'send-task': {
       const prior = state.tasks.find(item => item.quote === id || item.lead === quote.lead);
       if (prior) { navigate('task/' + prior.id); break; }
+      if (staleQuote(quote) || quote.state !== 'agreed' || (quote.config && quote.config.processor !== 'own') || !canManageLead(leadOf(quote.lead))) break;
       showForm('Передать в производство',command,id,
         `<p>В задание войдут расчёт №${quote.id}, размеры и прайс ${esc(priceLabel(quote))}.</p><p class="notice">Для макета укажите название тестового чертежа. Сам файл не загружается.</p>` +
         field('Название файла чертежа','<input name="drawing" required maxlength="120" placeholder="Эскиз столешницы.pdf">') +
@@ -839,12 +1125,14 @@ function handleDialog(form) {
       updateLead(lead,'Назначен ответственный',person(lead.owner));
       break;
     case 'agree-quote': {
-      const data = readQuoteForm(document.querySelector('#quote-form'),quote);
-      Object.assign(quote,data,{ state:'agreed',time:time() });
+      if (!quoteEditor(quote) || !canManageLead(leadOf(quote.lead)) || !fields.confirmation) return;
+      const data = validQuoteDraft(document.querySelector('#quote-form'),quote);
+      if (!data) return;
+      Object.assign(quote,data,{ state:'agreed',time:time(),date:today() });
       const item = leadOf(quote.lead);
       if (item.stage !== 'production' && item.stage !== 'complete') {
         item.stage = 'agreed';
-        item.next = 'Подготовить производственное задание';
+        item.next = quote.config.processor === 'own' ? 'Подготовить производственное задание' : 'Согласовать передачу партнёру вне макета';
       }
       updateLead(item,'Согласован расчёт №' + quote.id,currency(totals(quote).total) + ' · ' + quote.priceVersion);
       done = 'Согласованный вариант сохранён.';
@@ -853,6 +1141,7 @@ function handleDialog(form) {
     case 'send-task': {
       const prior = state.tasks.find(item => item.quote === id || item.lead === quote.lead);
       if (prior) { target = 'task/' + prior.id; break; }
+      if (staleQuote(quote) || quote.state !== 'agreed' || (quote.config && quote.config.processor !== 'own') || !canManageLead(leadOf(quote.lead))) return;
       const item = leadOf(quote.lead);
       const entry = { id:nextId(state.tasks,31), quote:id, lead:item.id, state:'queued', due:text('due'), drawing:text('drawing'), responsible:text('responsible'), dueConfirmed:false,
         note:text('note'), materials:0, works:0, parts:0 };
@@ -906,9 +1195,12 @@ function handleDialog(form) {
       const draft = state.prices.draft;
       if (!draft || draft.some(item => !item.decor) || new Set(draft.map(item => item.decor)).size !== draft.length) return;
       const version = 'v' + (1 + Number(state.prices.active.slice(1)));
+      const snapshot = () => Object.fromEntries(state.decors.map(item => [item.id,item.rate]));
+      const current = state.prices.versions.find(item => item.id === state.prices.active);
+      if (current && !current.rates) current.rates = snapshot();
       draft.forEach(row => { decorOf(row.decor).rate = priceFor(row); });
       state.prices.versions.forEach(item => { item.active = false; });
-      state.prices.versions.unshift({ id:version, date:seedDate, source:'Демонстрационный импорт', active:true, rows:draft });
+      state.prices.versions.unshift({ id:version, date:seedDate, source:'Демонстрационный импорт', active:true, rates:snapshot(), rows:draft });
       state.prices.active = version;
       state.prices.draft = null;
       addLog('Опубликован демопрайс ' + version,draft.length + ' строки · Москва и область');
@@ -940,14 +1232,22 @@ workspace.addEventListener('input', event => {
     else document.querySelector('#list-results').innerHTML = query === 'quotes' ? archiveRows() : catalogRows();
   }
   const form = input.form;
-  if (form?.id === 'quote-form' && input.name) {
+  if (form?.id === 'quote-form' && input.name && input.tagName !== 'SELECT' && input.type !== 'checkbox') {
     const quote = quoteOf(form.dataset.entity);
-    document.querySelector('#quote-summary').innerHTML = quoteSummary(readQuoteForm(form,quote));
-    const changed = quoteFormChanged(form, quote);
-    const status = document.querySelector('#quote-save-status');
-    if (status) status.textContent = changed ? 'Есть несохранённые изменения.' : 'Расчёт сохранён в этом браузере.';
-    document.querySelector('[data-action="export-quote"]').innerHTML = icon('file') + (changed ? 'Сохранить и скачать' : 'Скачать спецификацию');
+    if (quoteEditor(quote)) showQuoteDraft(quote,readQuoteForm(form,quote),form);
   }
+});
+
+workspace.addEventListener('change', event => {
+  const input = event.target;
+  const form = input.form;
+  if (form?.id !== 'quote-form' || !input.name || (input.tagName !== 'SELECT' && input.type !== 'checkbox')) return;
+  const quote = quoteOf(form.dataset.entity);
+  if (!quoteEditor(quote)) return;
+  const draft = readQuoteForm(form,quote);
+  if (input.name === 'delivery') draft.config.deliveryOverride = null;
+  if (input.name.startsWith('leftInclude') || input.name.startsWith('readySku') || input.name === 'slab') showQuoteDraft(quote,draft,form);
+  else refreshQuoteForm(form,quote,draft,input.name);
 });
 
 dialog.addEventListener('input', event => {
@@ -971,7 +1271,10 @@ document.addEventListener('submit', event => {
   if (form.dataset.form) { handleDialog(form); return; }
   if (form.id === 'quote-form') {
     const quote = quoteOf(form.dataset.entity);
-    Object.assign(quote,readQuoteForm(form,quote),{time:time()});
+    if (!quoteEditor(quote)) return;
+    const draft = validQuoteDraft(form,quote);
+    if (!draft) return;
+    Object.assign(quote,draft,{time:time(),date:today()});
     addLog('Сохранён расчёт №' + quote.id,quote.priceVersion + ' · ' + currency(totals(quote).total));
     render();
     message('Расчёт сохранён.');
@@ -1005,4 +1308,7 @@ document.addEventListener('keydown', event => {
     document.querySelector('.menu-toggle').focus();
   }
 });
+for (const quote of state.quotes) {
+  if (!quote.config && quote.state === 'draft') quote.config = legacyManagerConfig(quote);
+}
 render();

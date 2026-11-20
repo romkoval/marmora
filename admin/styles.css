@@ -57,7 +57,8 @@ h3 { font-size: 15px; letter-spacing: -.015em; }
 
 .topbar { position: sticky; z-index: 5; top: 0; min-height: var(--bar-height); display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 9px 29px; background: var(--white); border-bottom: 1px solid var(--line); }
 .identity, .topbar-tools { display: flex; align-items: center; gap: 17px; }
-.wordmark { font-size: 23px; font-weight: 800; letter-spacing: .15em; line-height: 1; }
+.wordmark { display: block; flex: none; border-radius: 4px; overflow: hidden; }
+.wordmark img { display: block; width: 142px; height: auto; }
 .workspace-name { color: var(--muted); border-left: 1px solid var(--line); padding-left: 17px; }
 .demo-label { padding: 2px 6px; border-radius: 4px; background: var(--blush); color: var(--wine); font-size: 10px; font-weight: 700; letter-spacing: 0; }
 .location { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); white-space: nowrap; font-size: 12px; }
@@ -241,8 +242,9 @@ dialog::backdrop { background: #2b1f2b55; }
   .identity { position: relative; gap: 9px; }
   .topbar-tools { gap: 8px; }
   .menu-toggle { display: inline-flex !important; border-color: transparent; width: 37px; height: 40px; }
-  .wordmark { font-size: 19px; margin-bottom: 13px; }
-  .demo-label { position: absolute; top: 24px; left: 46px; padding: 0; background: transparent; line-height: 1.2; }
+  .wordmark { margin-bottom: 13px; }
+  .wordmark img { width: 110px; }
+  .demo-label { position: absolute; top: 26px; left: 46px; padding: 0; background: transparent; line-height: 1.2; }
   .workspace-name, .location, .avatar { display: none; }
   .role-select select { max-width: min(160px, 43vw); }
   .shell { display: block; }
