@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="260" viewBox="0 0 480 260" role="img" aria-labelledby="title">
+  <title id="title">Мойка — условная иллюстрация без размеров</title>
+  <rect width="480" height="260" fill="#f8f1f2"/>
+  <rect x="16" y="16" width="448" height="228" rx="9" fill="#fff" stroke="#e8dce0" stroke-width="2"/>
+  <g stroke="#712738" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="119" y="34" width="242" height="146" rx="30" fill="#f5e9ec"/>
+    <rect x="133" y="48" width="214" height="118" rx="24" fill="#fff"/>
+    <circle cx="240" cy="86" r="16" fill="#f5e9ec"/>
+    <circle cx="240" cy="86" r="4" fill="#712738" stroke="none"/>
+    <path d="m153 96 51-4m123 4-51-4m-107 51 41-39m101 39-41-39" fill="none" stroke="#bb8b98" stroke-dasharray="2 8"/></g>
+  <path d="M34 195h412" stroke="#e8dce0" stroke-width="2"/>
+  <text x="240" y="224" text-anchor="middle" fill="#712738" font-family="Arial, sans-serif" font-size="19" font-weight="700">ДЕМОСХЕМА · БЕЗ РАЗМЕРОВ</text>
+</svg>

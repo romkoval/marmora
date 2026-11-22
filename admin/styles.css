@@ -300,3 +300,53 @@ dialog::backdrop { background: #2b1f2b55; }
   .page-head { display: block; }
   .page-head > .actions { max-width: none; justify-content: flex-start; margin-top: 8px; }
 }
+
+/* Manager quote: distinguish the source snapshot, editable groups and cost breakdown. */
+.quote-parameters { display: grid; gap: 16px; }
+.manager-quote-form { gap: 17px; }
+.manager-quote-group { min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--white); }
+.manager-quote-group > h3 { padding: 10px 13px; border-bottom: 1px solid var(--line); border-radius: 7px 7px 0 0; background: var(--soft); font-size: 14px; }
+.manager-group-body { padding: 13px; }
+.quote-source { background: var(--blush); border-color: #e3cbd2; }
+.quote-source > h3 { color: var(--wine); background: transparent; border-color: #e3cbd2; }
+.quote-source-lead { display: flex; align-items: center; gap: 12px; }
+.quote-source-lead .thumb { flex: none; }
+.quote-source-lead strong { display: block; color: var(--wine); font-size: 20px; }
+.quote-source details > summary { width: fit-content; cursor: pointer; font-size: 13px; font-weight: 700; }
+.quote-source details[open] > summary { margin-bottom: 8px; }
+.quote-versions { min-width: 0; font-size: 13px; }
+.quote-versions > p { font-weight: 700; }
+.quote-versions ul { list-style: none; margin: 5px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.quote-versions li { display: flex; gap: 2px 8px; flex-wrap: wrap; justify-content: space-between; padding: 6px 9px; }
+.quote-versions li + li { border-top: 1px solid var(--line); }
+.quote-versions .current-price { color: var(--ink); font-weight: 800; }
+.quote-versions .old-price { color: var(--muted); background: var(--soft); }
+.quote-versions .price-state { font-size: 11px; }
+.quote-compact-field { max-width: 15rem; min-width: 0; }
+.quote-area { background: var(--blush); border-radius: 7px; padding: 10px 12px; }
+.quote-area label { color: var(--wine); }
+.quote-area input { font-size: 17px; font-weight: 800; }
+.manager-quote-row { min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 7px; }
+.manager-quote-row.editable { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; align-items: start; }
+.manager-quote-row .quote-trash { width: 44px; height: 44px; margin-top: 14px; color: var(--wine); }
+.quote-ready-group > h3 { color: var(--wine); background: var(--blush); }
+.quote-save-status { color: var(--muted); font-size: 12px; }
+.quote-save-status.needs-attention { color: var(--wine); }
+.quote-cost .panel-body { display: grid; gap: 13px; min-width: 0; }
+.quote-summary-group { border: 1px solid var(--line); border-radius: 7px; min-width: 0; }
+.quote-summary-group h3 { padding: 7px 9px; border-bottom: 1px solid var(--line); border-radius: 6px 6px 0 0; background: var(--soft); font-size: 12px; }
+.quote-summary-group dl { margin: 0; padding: 0 9px; }
+.quote-summary-row { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); align-items: start; gap: 8px; padding: 7px 0; font-size: 12px; overflow-wrap: anywhere; }
+.quote-summary-row + .quote-summary-row { border-top: 1px solid var(--line); }
+.quote-summary-row dt { font-weight: 700; }
+.quote-summary-row dd { margin: 0; min-width: 0; text-align: right; }
+.quote-summary-row dd span { display: block; color: var(--muted); }
+.quote-summary-row dd strong { display: block; color: var(--ink); font-size: 13px; }
+.quote-summary-row dd span + strong { margin-top: 2px; }
+.quote-specification .actions { margin-bottom: 12px; }
+#manager-ready-document:empty { display: none; }
+@media (max-width: 520px) {
+  .quote-parameters > .panel > .panel-body { padding: 10px; }
+  .manager-group-body { padding: 10px; }
+  .manager-quote-form .fields { grid-template-columns: minmax(0, 1fr); }
+}

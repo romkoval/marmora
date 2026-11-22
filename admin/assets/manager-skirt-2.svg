@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="260" viewBox="0 0 480 260" role="img" aria-labelledby="title">
+  <title id="title">Бортик №2 — условная иллюстрация без размеров</title>
+  <rect width="480" height="260" fill="#f8f1f2"/>
+  <rect x="16" y="16" width="448" height="228" rx="9" fill="#fff" stroke="#e8dce0" stroke-width="2"/>
+  <g stroke="#712738" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M67 148H365l48-28H116z" fill="#f5e9ec"/>
+    <path d="M67 148v23h298l48-28v-23l-48 28z" fill="#dec0c8"/>
+    <path d="M365 148v23" fill="none"/>
+    <path d="M116 120V74q0-22 20-22h259v50q0 18-20 18z" fill="#eacfd6"/>
+    <path d="M136 52l17-10h259l-17 10z" fill="#f5e9ec"/>
+    <path d="M395 52l17-10v50q0 11-9 16l-16 9q8-6 8-15z" fill="#dec0c8"/></g>
+  <path d="M34 195h412" stroke="#e8dce0" stroke-width="2"/>
+  <text x="240" y="224" text-anchor="middle" fill="#712738" font-family="Arial, sans-serif" font-size="19" font-weight="700">ДЕМОСХЕМА · БЕЗ РАЗМЕРОВ</text>
+</svg>

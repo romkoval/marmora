@@ -68,7 +68,16 @@
     return new Blob(parts, { type: 'application/pdf' });
   }
 
-  function render(data, logo, decor, edge) {
+  // Filter structural labels only, never row values, names or the client's note.
+  const internalLabel = label => /^(?:обработчик|выбор обработчика|версия прайса|прайс)$/iu.test(
+    text(label, '').replace(/[\s:：]+$/u, '').replace(/\s+/gu, ' ')
+  );
+  const publicRows = rows => Array.isArray(rows)
+    ? rows.filter(row => Array.isArray(row) && !internalLabel(row[0])) : [];
+  const money = value => typeof value === 'number' && Number.isFinite(value)
+    ? `${value.toLocaleString('ru-RU')} ₽` : text(value, '');
+
+  function render(data, logo, images) {
     const pages = [];
     const canvas = document.createElement('canvas');
     canvas.width = W * 2;
@@ -82,10 +91,16 @@
       ctx.fillStyle = color;
       ctx.fillRect(x, top, w, h);
     }
-    function print(value, x, top, size = 14, color = ink, bold = false) {
+    function print(value, x, top, size = 14, color = ink, bold = false, maxWidth) {
       font(size, bold);
       ctx.fillStyle = color;
-      ctx.fillText(value, x, top);
+      if (maxWidth) ctx.fillText(value, x, top, maxWidth);
+      else ctx.fillText(value, x, top);
+    }
+    function right(value, x, top, size, color, bold, maxWidth) {
+      ctx.textAlign = 'right';
+      print(value, x, top, size, color, bold, maxWidth);
+      ctx.textAlign = 'left';
     }
     function wrap(value, width, size = 14, bold = false) {
       font(size, bold);
@@ -111,116 +126,177 @@
     }
     function begin() {
       const first = pages.length === 0;
+      const headerH = first ? 102 : 67;
       rectangle(0, 0, W, H, white);
-      rectangle(0, 0, W, 88, wine);
-      const logoW = 166, logoH = logoW * logo.naturalHeight / logo.naturalWidth;
-      ctx.drawImage(logo, M - 5, (88 - logoH) / 2, logoW, logoH);
-      const contactsX = W - M - 146;
-      print('ДЕМО-КОНТАКТЫ', contactsX, 26, 11, white, true);
-      print('info@levoni.example', contactsX, 45, 14, white);
+      rectangle(0, 0, W, headerH, wine);
+      const logoW = first ? 151 : 127, logoH = logoW * logo.naturalHeight / logo.naturalWidth;
+      ctx.drawImage(logo, M - 4, (67 - logoH) / 2, logoW, logoH);
+      right('ДЕМО  /  КОНТАКТЫ', W - M, 17, 10, white, true);
+      right('info@levoni.example', W - M, 33, 13, white, false);
+      if (first) {
+        rectangle(M, 62, BODY, 1, '#a66573');
+        print('Качество не наш конек. Дорого, долго и без гарантий.', M, 74, 13, white);
+      }
       print(first ? 'Спецификация заказа' : 'Спецификация заказа · продолжение',
-        M, 114, first ? 30 : 22, ink, true);
-      y = first ? 163 : 152;
+        M, headerH + 21, first ? 30 : 22, ink, true);
+      y = headerH + (first ? 64 : 58);
     }
     function finish() {
       rectangle(M, 835, BODY, 1, line);
       print('LEVONI  /  ДЕМО-СПЕЦИФИКАЦИЯ', M, 848, 10, muted, true);
-      const page = `Стр. ${pages.length + 1}`;
-      font(10, false);
-      print(page, W - M - ctx.measureText(page).width, 848, 10, muted);
-      const url = canvas.toDataURL('image/jpeg', 0.93);
+      right(`Стр. ${pages.length + 1}`, W - M, 848, 10, muted, false);
+      const url = canvas.toDataURL('image/jpeg', 0.95);
       const raw = atob(url.slice(url.indexOf(',') + 1));
       pages.push({ jpeg: Uint8Array.from(raw, c => c.charCodeAt(0)), width: canvas.width, height: canvas.height });
     }
-    function reserve(height, continuation) {
-      if (y + height <= BOTTOM) return;
+    function reserve(height) {
+      if (y + height <= BOTTOM) return false;
       finish();
       begin();
-      if (continuation) heading(`${continuation} · продолжение`, 34);
+      return true;
     }
-    function heading(title, nextHeight = 34) {
-      reserve(34 + nextHeight);
-      rectangle(M, y, BODY, 30, blush);
-      print(title, M + 12, y + 6, 16, wine, true);
-      y += 34;
+    const main = title => ({ title, style: 'main' });
+    const sub = title => ({ title, style: 'sub' });
+    function bandMetrics({ title, style }) {
+      const size = style === 'main' ? 16 : 14;
+      const lines = wrap(title, BODY - 24, size, true);
+      // Group titles are section labels, not the place for unrestricted prose.
+      if (lines.length > 3) lines.splice(2, lines.length - 2, '…');
+      return { size, lines, height: lines.length * (size + 4) + 14 };
     }
-    function firstRowHeight([label, value]) {
-      return Math.min(100, 16 + 19 * Math.max(wrap(text(label), 196).length, wrap(text(value), BODY - 232, 14, true).length));
-    }
-    function row(label, value, continuation) {
-      const left = wrap(text(label), 196);
-      const right = wrap(text(value), BODY - 232, 14, true);
-      const count = Math.max(left.length, right.length);
-      for (let i = 0; i < count;) {
-        reserve(Math.min(count - i, 4) * 19 + 16, continuation);
-        const visible = Math.min(count - i, Math.floor((BOTTOM - y - 16) / 19));
-        for (let j = 0; j < visible; j++) {
-          print(left[i + j] ?? '', M + 12, y + 7 + j * 19, 14, muted);
-          print(right[i + j] ?? '', M + 220, y + 7 + j * 19, 14, ink, true);
-        }
-        y += visible * 19 + 15;
-        rectangle(M, y, BODY, 1, line);
-        y += 1;
-        i += visible;
-      }
-    }
-    function section(title, rows, empty) {
-      const items = rows.length ? rows : [empty];
-      heading(title, firstRowHeight(items[0]));
-      items.forEach(([label, value]) => row(label, value, title));
-      y += 16;
-    }
-    function paragraph(value, continuation) {
-      for (const valueLine of wrap(value, BODY - 24)) {
-        reserve(21, continuation);
-        print(valueLine, M + 12, y + 2);
-        y += 21;
-      }
-    }
-    function samples(items) {
-      if (!items.length) return;
-      heading('Образцы', 151);
-      const gap = 12, cardW = (BODY - (items.length - 1) * gap) / items.length;
-      items.forEach(([caption, image], i) => {
-        const x = M + i * (cardW + gap), pictureHeight = 116;
-        rectangle(x, y, cardW, 148, '#faf8f8');
-        if (image) {
-          const scale = Math.min((cardW - 20) / image.naturalWidth, pictureHeight / image.naturalHeight);
-          const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
-          ctx.drawImage(image, x + (cardW - w) / 2, y + 4 + (pictureHeight - h) / 2, w, h);
-        } else {
-          print('Изображение недоступно', x + 10, y + 53, 13, muted);
-        }
-        print(caption, x + 10, y + 128, 13, ink, true);
+    function bands(headings, nextHeight) {
+      const metrics = headings.map(bandMetrics);
+      reserve(metrics.reduce((sum, band) => sum + band.height + 3, nextHeight));
+      headings.forEach(({ style }, i) => {
+        const { size, lines, height } = metrics[i];
+        const major = style === 'main';
+        rectangle(M, y, BODY, height, major ? wine : blush);
+        if (!major) rectangle(M, y, 3, height, wine);
+        lines.forEach((value, j) => print(value, M + 12, y + 7 + j * (size + 4), size, major ? white : wine, true));
+        y += height + 3;
       });
-      y += 164;
+    }
+    const labelX = M + 12, valueX = M + 190, priceX = W - M - 12, priceW = 125;
+    const rowStep = 18, rowPad = 12;
+    function position([label, description, price]) {
+      const amount = money(price);
+      return {
+        label: wrap(text(label), valueX - labelX - 16, 14, true),
+        description: wrap(text(description, amount ? '' : '—'), priceX - valueX - (amount ? priceW + 16 : 0), 14),
+        amount,
+      };
+    }
+    function countLines(row) { return Math.max(row.label.length, row.description.length); }
+    function rowStart(lines) { return Math.min(lines, 4) * rowStep + rowPad; }
+    function table(rows, headings, continuation, trailingHeight = 0) {
+      const items = rows.map(position);
+      const tail = (index, count) => trailingHeight && index === items.length - 1 && count <= 4 ? trailingHeight + 12 : 0;
+      bands(headings, rowStart(countLines(items[0])) + tail(0, countLines(items[0])));
+      items.forEach((item, index) => {
+        const count = countLines(item);
+        for (let i = 0; i < count;) {
+          const minimum = rowStart(count - i) + tail(index, count - i);
+          if (reserve(minimum)) bands([continuation], minimum);
+          const visible = Math.min(count - i, Math.floor((BOTTOM - y - rowPad) / rowStep));
+          const height = visible * rowStep + rowPad;
+          if (index % 2 === 0) rectangle(M, y, BODY, height, '#fcfafb');
+          for (let j = 0; j < visible; j++) {
+            const top = y + 6 + j * rowStep;
+            if (item.label[i + j]) print(item.label[i + j], labelX, top, 14, ink, true);
+            if (item.description[i + j]) print(item.description[i + j], valueX, top, 14, muted);
+          }
+          if (!i && item.amount) right(item.amount, priceX, y + 6, 14, ink, true, priceW);
+          y += height;
+          rectangle(M, y - 1, BODY, 1, line);
+          i += visible;
+        }
+      });
+      y += 12;
+    }
+    function samples(sets) {
+      let first = true;
+      for (const { items, pictureH } of sets) {
+        const gap = 10, cardW = (BODY - (items.length - 1) * gap) / items.length;
+        const captions = items.map(item => wrap(item.caption, cardW - 20, 13, true));
+        // If a custom caption is unusually long, keep the image and caption together.
+        captions.forEach(lines => { if (lines.length > 4) lines.splice(3, lines.length - 3, '…'); });
+        const cardH = pictureH + 24 + 16 * Math.max(...captions.map(lines => lines.length));
+        const title = first ? 'Образцы' : 'Образцы · продолжение';
+        if (first) bands([main(title)], cardH);
+        else if (reserve(cardH)) bands([main(title)], cardH);
+        items.forEach(({ image }, i) => {
+          const x = M + i * (cardW + gap);
+          rectangle(x, y, cardW, cardH, '#faf8f8');
+          if (image) {
+            const scale = Math.min((cardW - 18) / image.naturalWidth, pictureH / image.naturalHeight, 1.6);
+            const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
+            ctx.drawImage(image, x + (cardW - w) / 2, y + 8 + (pictureH - h) / 2, w, h);
+          } else {
+            const missing = wrap('Изображение недоступно', cardW - 20, 13);
+            missing.forEach((value, j) => print(value, x + 10, y + (pictureH - 16 * missing.length) / 2 + j * 16, 13, muted));
+          }
+          captions[i].forEach((value, j) => print(value, x + 10, y + pictureH + 15 + j * 16, 13, ink, true));
+        });
+        y += cardH + 12;
+        first = false;
+      }
+      if (!first) y += 2;
+    }
+    function paragraph(title, value) {
+      const lines = wrap(value, BODY - 24);
+      bands([sub(title)], Math.min(lines.length, 3) * 20 + 6);
+      lines.forEach(valueLine => {
+        if (reserve(20)) bands([sub(`${title} · продолжение`)], 20);
+        print(valueLine, labelX, y + 2);
+        y += 20;
+      });
+      y += 12;
     }
 
     begin();
     const details = 'Данные расчёта';
-    row('Номер расчёта', data.id, details);
-    row('Дата расчёта', data.date, details);
-    row('Менеджер', data.manager, details);
-    row('Клиент', data.client, details);
-    y += 16;
-    section('Индивидуальные товары', data.individual ?? [], ['Позиции', 'Не выбраны']);
-    section('Готовые товары', data.ready ?? [], ['Позиции', 'Не выбраны']);
-    row('Итого по заказу', data.total, 'Итоговая стоимость');
-    y += 16;
-    samples([
-      ...(data.decorImage ? [['Декор', decor]] : []),
-      ...(data.edgeImage ? [['Кромка · справочный образец', edge]] : [])
-    ]);
-    const note = text(data.note, '');
-    if (note) {
-      heading('Примечание менеджера');
-      paragraph(note, 'Примечание менеджера');
-      y += 12;
+    table([
+      ['Номер расчёта', data.id], ['Дата расчёта', data.date],
+      ['Менеджер', data.manager], ['Клиент', data.client]
+    ], [sub(details)], sub(`${details} · продолжение`));
+
+    const individual = 'Индивидуальные товары';
+    const empty = [['Позиции', 'Не выбраны']];
+    // Grouped rows replace the flat individual list when present; ready is independent.
+    const groups = Array.isArray(data.groups) ? data.groups.flatMap(group => {
+      if (!group || internalLabel(group.title)) return [];
+      const rows = publicRows(group.rows);
+      return rows.length ? [{ title: text(group.title, ''), rows }] : [];
+    }) : [];
+    if (groups.length) {
+      groups.forEach(({ title, rows }, i) => {
+        const headings = [...(!i ? [main(individual)] : []), ...(title ? [sub(title)] : [])];
+        table(rows, headings, sub(`${title || individual} · продолжение`));
+      });
+    } else {
+      const rows = publicRows(data.individual);
+      table(rows.length ? rows : empty, [main(individual)], main(`${individual} · продолжение`));
     }
     const termsTitle = 'Условия предложения';
     const terms = 'Стоимость заказа предварительная. Точная стоимость будет рассчитана после проведения замера. Условия коммерческого предложения действуют в течение 3 рабочих дней.';
-    heading(termsTitle, wrap(terms, BODY - 24).length * 21);
-    paragraph(terms, termsTitle);
+    const summaryHeight = 66 + bandMetrics(sub(termsTitle)).height + 3 + wrap(terms, BODY - 24).length * 20 + 6;
+    const ready = 'Готовые товары', readyItems = publicRows(data.ready);
+    table(readyItems.length ? readyItems : empty, [main(ready)], main(`${ready} · продолжение`), summaryHeight);
+
+    reserve(summaryHeight);
+    rectangle(M, y, BODY, 50, wine);
+    print('Итого по заказу', labelX, y + 16, 16, white, true);
+    right(money(data.total) || '—', priceX, y + 10, 25, white, true, BODY - 200);
+    y += 66;
+    paragraph(termsTitle, terms);
+
+    const sets = [
+      { items: images.slice(0, 3).filter(Boolean), pictureH: 127 },
+      { items: images.slice(3).filter(Boolean), pictureH: images[4] ? 238 : 150 },
+    ];
+    samples(sets.filter(set => set.items.length));
+    const note = text(data.note, '');
+    if (note) paragraph('Примечание менеджера', note);
     finish();
     return pages;
   }
@@ -228,11 +304,19 @@
   // app.js calls this from its download action. Resolves with the requested filename;
   // rejects on generation errors so the caller can show an appropriate message.
   window.downloadManagerSpecification = async function (data) {
-    const [logo, decor, edge] = await Promise.all([
-      loadImage('assets/levoni-brand.png'), loadImage(data.decorImage), loadImage(data.edgeImage)
+    const entries = [
+      [data.decorImage, 'Декор'],
+      [data.edgeImage, text(data.edgeCaption, 'Кромка · справочный образец')],
+      [data.skirtImage, text(data.skirtCaption, 'Бортик · демосхема')],
+      [data.sinkImage, text(data.sinkCaption, 'Мойка · образец')],
+      [data.sinkDrawing, text(data.sinkDrawingCaption, 'Мойка · чертёж')],
+    ];
+    const [logo, ...images] = await Promise.all([
+      loadImage('assets/levoni-brand.png'),
+      ...entries.map(async ([path, caption]) => path ? { image: await loadImage(path), caption } : null),
     ]);
     if (!logo) throw new Error('Не удалось загрузить логотип для спецификации.');
-    const url = URL.createObjectURL(pdfBlob(render(data, logo, decor, edge)));
+    const url = URL.createObjectURL(pdfBlob(render(data, logo, images)));
     const id = text(data.id, 'demo').replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 60);
     const link = document.createElement('a');
     link.href = url;
