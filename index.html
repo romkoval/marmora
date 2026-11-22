@@ -3555,6 +3555,31 @@ summary.product-support-row::-webkit-details-marker { display: none; }
       .decor-window { overflow-x: auto; }
       .decor-repeat { display: none; }
     }
+    .interior-action { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:42px; max-width:100%; padding:8px 13px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; color:var(--green); font:inherit; font-size:13px; font-weight:700; line-height:1.28; cursor:pointer; }
+    .interior-action:hover { background:var(--soft); border-color:var(--green); }
+    .interior-action svg { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linejoin:round; stroke-linecap:round; }
+    .gallery-frame>.interior-action { position:absolute; bottom:12px; left:12px; max-width:calc(100% - 82px); box-shadow:0 2px 12px #26201e25; }
+    .with-interior .card-link { display:block; min-width:0; }
+    .with-interior .interior-action { margin-top:9px; }
+    .recommendation-card.with-interior .interior-action, .offer-card.with-interior .interior-action { min-height:36px; padding:5px 0; justify-content:flex-start; text-align:left; border:0; background:transparent; font-size:12px; }
+    .recommendation-card.with-interior .interior-action:hover, .offer-card.with-interior .interior-action:hover { text-decoration:underline; }
+    #interior-dialog { width:min(1240px,calc(100vw - 40px)); max-width:none; height:min(950px,calc(100dvh - 36px)); max-height:none; padding:0; margin:auto; overflow:hidden; background:#f5f6f0; border:1px solid #d3ceca; border-radius:12px; }
+    #interior-dialog[open] { display:flex; flex-direction:column; }
+    #interior-dialog::backdrop { background:rgb(29 26 26 / .60); }
+    .interior-head { flex:none; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 16px; background:#fff; border-bottom:1px solid var(--line); }
+    .interior-head h2 { margin:0; font-size:15px; font-weight:700; line-height:1.3; }
+    .interior-close { display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:5px 8px; border:0; border-radius:var(--radius); background:transparent; color:var(--green); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+    .interior-close:hover { background:var(--soft); }
+    .interior-close span { font:400 23px/1 sans-serif; }
+    #interior-host { flex:1; min-height:0; }
+    #interior-host iframe { display:block; width:100%; height:100%; border:0; }
+    @media(max-width:760px) {
+      #interior-dialog { width:100vw; height:100dvh; margin:0; border:none; border-radius:0; }
+      .interior-head { padding:3px 9px 3px 14px; padding-top:max(3px,env(safe-area-inset-top)); }
+      .with-interior .interior-action { min-height:44px; }
+      .product-tile.with-interior .interior-action { padding:7px; gap:4px; font-size:12px; }
+      .gallery-frame>.interior-action { bottom:8px; left:8px; min-height:44px; }
+    }
   </style>
 </head>
 
@@ -3665,6 +3690,12 @@ summary.product-support-row::-webkit-details-marker { display: none; }
   <dialog id="filter-dialog" aria-labelledby="filter-title"></dialog>
   <dialog id="utility-dialog" aria-labelledby="utility-title"></dialog>
   <dialog id="request-dialog" aria-labelledby="request-title"></dialog>
+  <dialog id="interior-dialog" aria-labelledby="interior-title">
+    <div class="interior-head"><h2 id="interior-title">Декор в интерьере</h2>
+      <button class="interior-close" type="button" id="interior-close" aria-label="Закрыть просмотр интерьера" autofocus>Закрыть <span aria-hidden="true">×</span></button>
+    </div>
+    <div id="interior-host"></div>
+  </dialog>
   <script type="application/json" id="regions-data">
 {
   "moscow": {
@@ -3877,6 +3908,10 @@ const app = document.querySelector("#app");
 const dialog = document.querySelector("#request-dialog");
 const escapeText = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const regionData = JSON.parse(document.querySelector('#regions-data').textContent);
+// Resolve assets from the storefront, including direct city URLs and a site mounted in a subdirectory.
+const storefrontRoot = new URL('./', location.href);
+const regionalBase = location.pathname.match(new RegExp('^(.*\\/)(?:' + Object.keys(regionData).join('|') + ')\\/(?:catalog|akril|kvarc|keramika|natural)(?:\\/|$)'));
+if (regionalBase) storefrontRoot.pathname = regionalBase[1];
 let regionKey = 'moscow', region = regionData.moscow.name, favorites = [], cart = [], signedIn = false;
 const sinkOptions = {
     none: 'Без мойки',
@@ -3884,7 +3919,7 @@ const sinkOptions = {
     under: 'Подстольный монтаж'
 };
 const deliveryZones = { city: 'По городу', area: 'По области' };
-const usesHashRoutes = location.protocol === 'file:' || document.documentElement.hasAttribute('data-static-host');
+const usesHashRoutes = location.protocol === 'file:' || document.documentElement.hasAttribute('data-static-host') || /\.html?$/i.test(location.pathname);
 const materialSlugs = { acrylic: 'akril', quartz: 'kvarc', ceramic: 'keramika', natural: 'natural' };
 const materialNames = { acrylic: 'акрилового камня', quartz: 'кварцевого камня', ceramic: 'керамики', natural: 'натурального камня' };
 const brandAliases = { Avarus: 'аварус', Acrylica: 'акрилика', Avant: 'авант', 'Avant Quartz': 'авант кварц', Grandex: 'грандекс', TechGres: 'техгрес', Hanex: 'ханекс', Staron: 'старон', 'HI-MACS': 'хаймакс', Tristone: 'тристон', Corian: 'кориан' };
@@ -3915,7 +3950,7 @@ function productHref(product, key = regionKey, config) {
     if (usesHashRoutes) {
         url.hash = path + (params.size ? '?' + params : '');
     } else {
-        url.pathname = path;
+        url.pathname = new URL(path.slice(1), storefrontRoot).pathname;
         url.search = params.toString();
         url.hash = '';
     }
@@ -3927,7 +3962,7 @@ function catalogHref(key, query = '') {
     if (usesHashRoutes) {
         url.hash = `/${key}/catalog${query ? '?' + query : ''}`;
     } else {
-        url.pathname = `/${key}/catalog`;
+        url.pathname = new URL(`${key}/catalog`, storefrontRoot).pathname;
         url.search = query;
         url.hash = '';
     }
@@ -3938,6 +3973,73 @@ function navigate(href) {
     history.pushState(null, '', href);
     render(true);
 }
+
+function interiorSurface(p) {
+    return p.swatch && ({ table: 'table', countertop: 'counter' })[p.category];
+}
+
+function interiorButton(p) {
+    if (!interiorSurface(p)) return '';
+    return `<button class="interior-action" type="button" data-interior="${escapeText(p.id)}" aria-haspopup="dialog" aria-controls="interior-dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.7 8.5 4.8v9L12 21.3l-8.5-4.8v-9zM3.5 7.5 12 12.3l8.5-4.8M12 12.3v9"/></svg><span>Посмотреть в интерьере</span></button>`;
+}
+
+function productCard(p, style, content, attributes = '') {
+    const link = `href="${escapeText(productHref(p))}" data-local-route ${attributes}`;
+    const button = interiorButton(p);
+    if (!button) return `<a class="${style}" ${link}>${content}</a>`;
+    return `<article class="${style} with-interior"><a class="card-link" ${link}>${content}</a>${button}</article>`;
+}
+
+const interiorDialog = document.getElementById('interior-dialog');
+const interiorHost = document.getElementById('interior-host');
+let interiorTrigger, closingInterior = false;
+
+function showInterior(trigger) {
+    const product = products.find(item => item.id === trigger.dataset.interior);
+    const surface = product && interiorSurface(product);
+    if (!surface || interiorDialog.open) return;
+    const url = new URL('interior/index.html', storefrontRoot);
+    url.search = new URLSearchParams({ surface, decor: product.swatch }).toString();
+    const frame = document.createElement('iframe');
+    frame.title = `Кухня LEVONI — ${surface === 'table' ? 'крышка стола' : 'столешница'}, ${product.color}`;
+    frame.allowFullscreen = true;
+    frame.src = url.href;
+    interiorTrigger = trigger;
+    closingInterior = false;
+    interiorHost.replaceChildren(frame);
+    interiorDialog.showModal();
+}
+
+function closeInterior() {
+    if (!interiorDialog.open || closingInterior) return;
+    if (history.state?.interiorProduct) {
+        closingInterior = true;
+        history.back();
+    } else interiorDialog.close();
+}
+
+function restoreInterior() {
+    const id = history.state?.interiorProduct;
+    const trigger = id && [...app.querySelectorAll('[data-interior]')].find(button => button.dataset.interior === id);
+    if (trigger) showInterior(trigger);
+    else if (interiorDialog.open) interiorDialog.close();
+}
+
+document.getElementById('interior-close').addEventListener('click', closeInterior);
+interiorDialog.addEventListener('cancel', event => { event.preventDefault(); closeInterior(); });
+interiorDialog.addEventListener('close', () => {
+    if (interiorDialog.open) return;
+    interiorHost.replaceChildren();
+    closingInterior = false;
+    if (interiorTrigger?.isConnected) interiorTrigger.focus({ preventScroll: true });
+    interiorTrigger = undefined;
+});
+window.addEventListener('message', event => {
+    const frame = interiorHost.querySelector('iframe');
+    const sameSite = location.protocol === 'file:' ? ['null','file://'].includes(event.origin) : event.origin === location.origin;
+    if (frame && sameSite && event.source === frame.contentWindow && event.data === 'levoni:close-interior') closeInterior();
+});
 
 function fullTitle(product) {
     if (product.category === 'bathroom') return 'Столешница для ванной с двумя чашами';
@@ -4393,6 +4495,13 @@ function bindHome() {
 document.addEventListener('click', event => {
     const control = event.target.closest('button,a');
     if (!control) return;
+    if (control.matches('[data-interior]')) {
+        if (!interiorDialog.open) {
+            history.pushState({ ...history.state, interiorProduct: control.dataset.interior }, '', location.href);
+            showInterior(control);
+        }
+        return;
+    }
     if (control.matches('[data-region]')) openRegion();
     if (control.matches('[data-cart]')) openCart();
     if (control.matches('[data-favorites]')) openFavorites();
@@ -4543,7 +4652,7 @@ function home() {
       <div class="offer-carousel" data-reveal>
         <button class="icon-button" type="button" data-offer-step="-1" aria-label="Предыдущие предложения" aria-controls="offer-track">‹</button>
         <div class="offer-track" id="offer-track" tabindex="0" aria-label="Предложения региона">
-          ${offers.map(p => `<a class="offer-card" href="${productHref(p)}" data-local-route>${pic(p.photos[0], '', 'loading=lazy')}<h3>${title(p)}</h3><p class="soft">${p.color ?? materials[p.material]}</p><strong>${money(p.rate)}</strong></a>`).join('')}
+          ${offers.map(p => productCard(p, 'offer-card', `${pic(p.photos[0], '', 'loading=lazy')}<h3>${title(p)}</h3><p class="soft">${p.color ?? materials[p.material]}</p><strong>${money(p.rate)}</strong>`)).join('')}
         </div>
         <button class="icon-button" type="button" data-offer-step="1" aria-label="Следующие предложения" aria-controls="offer-track">›</button>
       </div>
@@ -4651,9 +4760,9 @@ function openAccessory(item) {
 }
 
 function recommendation(p) {
-    return `<a class="recommendation-card" href="${productHref(p)}" data-local-route data-related-link="${p.id}">${pic(p.photos[0], '', 'loading=lazy')}<div>
+    return productCard(p, 'recommendation-card', `${pic(p.photos[0], '', 'loading=lazy')}<div>
       <h3>${p.color}</h3><small>${p.brand}${p.article === p.brand ? "" : " " + p.article} · ${materials[p.material]}</small>
-      <strong data-related-price="${p.id}"></strong></div></a>`;
+      <strong data-related-price="${p.id}"></strong></div>`, `data-related-link="${p.id}"`);
 }
 
 const accessoryPreviewCount = 6;
@@ -4756,6 +4865,7 @@ function productMarkup(p) {
               ${p.photos.map((photo, index) => `<figure class="gallery-slide">${pic(photo, index ? `${p.article} · ракурс ${index + 1}` : p.referencePhoto ? `Пример изделия: ${categoryTitles[p.category].toLowerCase()}` : fullTitle(p), index ? 'loading=lazy' : 'fetchpriority=high')}</figure>`).join('')}
             </div>
             ${p.photos.length > 1 ? `<span class="gallery-count"><span id="photo-index">1</span> / ${p.photos.length}</span>` : ''}
+            ${interiorButton(p)}
           </div>
           ${p.photos.length > 1 ? `<div class="thumbs" aria-label="Выбрать фотографию">${p.photos.map((photo, index) => `<button type="button" data-photo-index="${index}" aria-label="Ракурс ${index + 1}" aria-pressed="${index === 0}">${pic(photo)}</button>`).join('')}</div>` : ''}
           ${p.id === 'a101' ? '<p class="gallery-example">Для этого изделия пока доступно одно фото.</p>' : ''}
@@ -4865,13 +4975,12 @@ ${productSupportDisclosure('Как согласовать заказ', `
   </aside>`;
 }
 function card(p) {
-    return `<a class="product-tile" href="${productHref(p)}" data-local-route>${pic(p.photos[0], "", "loading=lazy")}
+    return productCard(p, 'product-tile', `${pic(p.photos[0], "", "loading=lazy")}
     <small>${materials[p.material]}</small>
 <h3>${title(p)}</h3>
     <span class="soft">${p.color ?? (p.fixed ? p.dimensions : materials[p.material])}</span>
 <br>
-<strong>${p.requestOnly ? "Индивидуальный расчёт" : money(p.rate) + " " + productRateLabel(p)}</strong>
-</a>`;
+<strong>${p.requestOnly ? "Индивидуальный расчёт" : money(p.rate) + " " + productRateLabel(p)}</strong>`);
 }
 function selectOptions(entries, placeholder) {
     return `<option value="">${placeholder}</option>` + entries.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
@@ -5001,6 +5110,7 @@ function catalog(params) {
             if (search.value) next.set('q', search.value);
             if (sort.value) next.set('sort', sort.value);
             history.replaceState(null, '', catalogHref(regionKey, next.toString()));
+            lastRenderedAddress = location.href;
         }
         lastCatalogHash = catalogHref(regionKey, new URLSearchParams(
             Object.entries({ ...Object.fromEntries(filterKeys.map(key => [key, selected[key]])), q: search.value, sort: sort.value })
@@ -5241,14 +5351,16 @@ function setRegion(key) {
 
 function parseRoute() {
     const hash = location.hash.slice(1);
-    const address = hash || (usesHashRoutes ? 'home' : location.pathname);
+    const path = '/' + location.pathname.slice(storefrontRoot.pathname.length);
+    const address = hash || (usesHashRoutes ? 'home' : path);
     const [route, query = location.search.slice(1)] = address.split('?', 2);
     const params = new URLSearchParams(query);
     if (route.startsWith('/')) {
         const [, key, material, slug] = route.split('/');
         if (Object.hasOwn(regionData, key)) {
             if (material === 'catalog') return { page: 'catalog', key, params };
-            const item = products.find(product => productPath(product, key) === route);
+            const productRoute = route.replace(/\/+$/, '');
+            const item = products.find(product => productPath(product, key) === productRoute);
             return { page: 'product', key, item, params };
         }
         return { page: 'home', params };
@@ -5358,8 +5470,10 @@ document.querySelectorAll("dialog").forEach(sheet => {
         if (event.target !== sheet)
             return;
         const bounds = sheet.getBoundingClientRect();
-        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)
-            sheet.close();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) {
+            if (sheet === interiorDialog) closeInterior();
+            else sheet.close();
+        }
     });
 });
 document.querySelectorAll("[data-search-link]").forEach(link => link.addEventListener("click", event => {
@@ -5371,10 +5485,12 @@ document.querySelectorAll("[data-search-link]").forEach(link => link.addEventLis
 let lastRenderedAddress = '';
 function onHistoryChange() {
     if (lastRenderedAddress !== location.href) render(true);
+    restoreInterior();
 }
 window.addEventListener('hashchange', onHistoryChange);
 window.addEventListener('popstate', onHistoryChange);
 render(false);
+restoreInterior();
 
 </script>
 </body>
