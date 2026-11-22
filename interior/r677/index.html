@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f4ed">
+  <title>Московская ночь · Avarus R677 · LEVONI</title>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./materials.js"></script>
+  <script defer src="./controls.js"></script>
+</head>
+<body>
+  <main class="workshop">
+    <section class="studio" aria-label="Визуализация кухни">
+      <div class="studio-tools">
+        <div class="modes" role="group" aria-label="Режим просмотра">
+          <button id="mode-live" type="button" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2 7 4v8l-7 4-7-4V6l7-4Zm0 8 7-4M3 6l7 4v8"/></svg>Вращать в 3D</button>
+          <button id="mode-photo" type="button" aria-pressed="false">Рендер</button>
+        </div>
+        <button id="expand" class="icon-button" type="button" aria-label="Во весь экран" title="Во весь экран"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4"/></svg></button>
+      </div>
+      <div class="stage" id="stage">
+        <div class="frame" id="scene-frame">
+          <img id="poster" src="./front.jpg" alt="Белая кухня с каменным островом R677, латунным смесителем и шестью стеклянными подвесами">
+          <canvas id="photographic" hidden aria-label="Рендер интерьера с выбранной отделкой"></canvas>
+          <div id="live" hidden></div>
+          <div id="progress" role="status">Загрузка 3D…</div>
+          <div class="zoom" id="zoom" hidden>
+            <button type="button" id="closer" aria-label="Приблизить" title="Приблизить">+</button>
+            <button type="button" id="further" aria-label="Отдалить" title="Отдалить">−</button>
+            <button type="button" id="reset-view" aria-label="Восстановить ракурс" title="Восстановить ракурс">↺</button>
+          </div>
+        </div>
+      </div>
+      <nav id="views" aria-label="Ракурсы кухни"></nav>
+      <p id="message" role="status" hidden></p>
+    </section>
+    <aside class="finishes" aria-label="Настройка материалов">
+      <section id="overview">
+        <header class="product-title"><p>AVARUS <span>/</span> R677</p><h1>Московская ночь</h1></header>
+        <h2>Камень</h2>
+        <div id="surfaces"></div>
+        <label class="link-control"><input id="linked" type="checkbox" checked><span class="switch" aria-hidden="true"></span>Один декор для всех поверхностей</label>
+        <section class="trim"><div class="trim-heading"><h2>Фасады</h2><span id="paint-name"></span></div><div id="paint" class="colour-list" role="group" aria-label="Цвет фасадов"></div></section>
+        <section class="trim"><div class="trim-heading"><h2>Металл</h2><span id="metal-name"></span></div><div id="metal" class="colour-list" role="group" aria-label="Отделка фурнитуры"></div></section>
+        <button type="button" id="restore" class="restore">Вернуть отделку с фото</button>
+      </section>
+      <section id="palette" hidden aria-labelledby="palette-title">
+        <button type="button" id="back">← К материалам</button>
+        <h2 id="palette-title"></h2>
+        <div id="choices" role="group" aria-labelledby="palette-title"></div>
+      </section>
+    </aside>
+  </main>
+</body>
+</html>

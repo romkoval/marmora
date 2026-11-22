@@ -3999,7 +3999,8 @@ function showInterior(trigger) {
     const product = products.find(item => item.id === trigger.dataset.interior);
     const surface = product && interiorSurface(product);
     if (!surface || interiorDialog.open) return;
-    const url = new URL('interior/index.html', storefrontRoot);
+    const scene = product.id === 'r677' ? 'interior/r677/index.html' : 'interior/index.html';
+    const url = new URL(scene, storefrontRoot);
     url.search = new URLSearchParams({ surface, decor: product.swatch }).toString();
     const frame = document.createElement('iframe');
     frame.title = `Кухня LEVONI — ${surface === 'table' ? 'крышка стола' : 'столешница'}, ${product.color}`;
