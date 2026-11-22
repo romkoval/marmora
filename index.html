@@ -3559,10 +3559,6 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     .interior-action:hover { background:var(--soft); border-color:var(--green); }
     .interior-action svg { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linejoin:round; stroke-linecap:round; }
     .gallery-frame>.interior-action { position:absolute; bottom:12px; left:12px; max-width:calc(100% - 82px); box-shadow:0 2px 12px #26201e25; }
-    .with-interior .card-link { display:block; min-width:0; }
-    .with-interior .interior-action { margin-top:9px; }
-    .recommendation-card.with-interior .interior-action, .offer-card.with-interior .interior-action { min-height:36px; padding:5px 0; justify-content:flex-start; text-align:left; border:0; background:transparent; font-size:12px; }
-    .recommendation-card.with-interior .interior-action:hover, .offer-card.with-interior .interior-action:hover { text-decoration:underline; }
     #interior-dialog { width:min(1240px,calc(100vw - 40px)); max-width:none; height:min(950px,calc(100dvh - 36px)); max-height:none; padding:0; margin:auto; overflow:hidden; background:#f5f6f0; border:1px solid #d3ceca; border-radius:12px; }
     #interior-dialog[open] { display:flex; flex-direction:column; }
     #interior-dialog::backdrop { background:rgb(29 26 26 / .60); }
@@ -3576,8 +3572,6 @@ summary.product-support-row::-webkit-details-marker { display: none; }
     @media(max-width:760px) {
       #interior-dialog { width:100vw; height:100dvh; margin:0; border:none; border-radius:0; }
       .interior-head { padding:3px 9px 3px 14px; padding-top:max(3px,env(safe-area-inset-top)); }
-      .with-interior .interior-action { min-height:44px; }
-      .product-tile.with-interior .interior-action { padding:7px; gap:4px; font-size:12px; }
       .gallery-frame>.interior-action { bottom:8px; left:8px; min-height:44px; }
     }
   </style>
@@ -3985,10 +3979,7 @@ function interiorButton(p) {
 }
 
 function productCard(p, style, content, attributes = '') {
-    const link = `href="${escapeText(productHref(p))}" data-local-route ${attributes}`;
-    const button = interiorButton(p);
-    if (!button) return `<a class="${style}" ${link}>${content}</a>`;
-    return `<article class="${style} with-interior"><a class="card-link" ${link}>${content}</a>${button}</article>`;
+    return `<a class="${style}" href="${escapeText(productHref(p))}" data-local-route ${attributes}>${content}</a>`;
 }
 
 const interiorDialog = document.getElementById('interior-dialog');
