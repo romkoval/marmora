@@ -2,6 +2,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   const catalog = window.R677;
+  const assetVersion = new URL(document.currentScript.src).search;
   const stones = new Map(catalog.stones.map(s => [s.id,s]));
   const roles = {island:'Остров',counter:'Столешница',wall:'Стеновая панель'};
   const views = {front:'Фасад',angle:'Под углом',island:'Остров',detail:'Мойка'};
@@ -22,7 +23,7 @@
   window.R677views={};
   function loadScript(src) {
     if(!scripts.has(src)) scripts.set(src,new Promise((resolve,reject)=>{
-      const script=document.createElement('script'); script.src=src;script.onload=resolve;
+      const script=document.createElement('script'); script.src=src+assetVersion;script.onload=resolve;
       script.onerror=()=>{scripts.delete(src);reject(new Error('Не удалось загрузить '+src));};
       document.head.append(script);
     }));
@@ -113,7 +114,7 @@
   }
   for(const [key,label] of Object.entries(views)){
     const b=button(label,'view',key,$('views'));b.className='view';
-    const img=new Image();img.alt='';img.src='./views/'+key+'.webp';
+    const img=new Image();img.alt='';img.src='./views/'+key+'.webp'+assetVersion;
     const text=document.createElement('span');text.textContent=label;b.append(img,text);
     b.onclick=()=>{view=key;refreshLabels();if(live)live.setView(key);if(mode==='photo')nativeRefresh();};
   }
